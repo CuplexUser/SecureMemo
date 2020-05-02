@@ -36,9 +36,10 @@
             // 
             // btnCancel
             // 
-            this.btnCancel.Location = new System.Drawing.Point(233, 101);
+            this.btnCancel.Location = new System.Drawing.Point(175, 82);
+            this.btnCancel.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.btnCancel.Name = "btnCancel";
-            this.btnCancel.Size = new System.Drawing.Size(125, 35);
+            this.btnCancel.Size = new System.Drawing.Size(94, 28);
             this.btnCancel.TabIndex = 0;
             this.btnCancel.Text = "Cancel";
             this.btnCancel.UseVisualStyleBackColor = true;
@@ -47,25 +48,29 @@
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(3, 16);
+            this.label1.Location = new System.Drawing.Point(2, 13);
+            this.label1.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(101, 17);
+            this.label1.Size = new System.Drawing.Size(77, 13);
             this.label1.TabIndex = 1;
             this.label1.Text = "Tab Page Title";
             // 
             // txtNewName
             // 
-            this.txtNewName.Location = new System.Drawing.Point(110, 16);
+            this.txtNewName.Location = new System.Drawing.Point(82, 13);
+            this.txtNewName.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.txtNewName.MaxLength = 30;
             this.txtNewName.Name = "txtNewName";
-            this.txtNewName.Size = new System.Drawing.Size(248, 22);
+            this.txtNewName.Size = new System.Drawing.Size(187, 20);
             this.txtNewName.TabIndex = 2;
+            this.txtNewName.KeyUp += new System.Windows.Forms.KeyEventHandler(this.txtNewName_KeyUp);
             // 
             // btnOk
             // 
-            this.btnOk.Location = new System.Drawing.Point(102, 101);
+            this.btnOk.Location = new System.Drawing.Point(76, 82);
+            this.btnOk.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.btnOk.Name = "btnOk";
-            this.btnOk.Size = new System.Drawing.Size(125, 35);
+            this.btnOk.Size = new System.Drawing.Size(94, 28);
             this.btnOk.TabIndex = 4;
             this.btnOk.Text = "Ok";
             this.btnOk.UseVisualStyleBackColor = true;
@@ -73,14 +78,15 @@
             // 
             // RenameTabPageControl
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Controls.Add(this.btnOk);
             this.Controls.Add(this.txtNewName);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.btnCancel);
+            this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.Name = "RenameTabPageControl";
-            this.Size = new System.Drawing.Size(375, 160);
+            this.Size = new System.Drawing.Size(281, 130);
             this.Load += new System.EventHandler(this.RenameTabPageControl_Load);
             this.ResumeLayout(false);
             this.PerformLayout();

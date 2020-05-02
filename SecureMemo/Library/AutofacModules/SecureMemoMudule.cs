@@ -7,11 +7,12 @@ namespace SecureMemo.Library.AutofacModules
     {
         protected override void Load(ContainerBuilder builder)
         {
-            builder.RegisterType<PasswordStorage>().SingleInstance();
+            builder.RegisterType<PasswordStorage>().AsSelf().SingleInstance();
             builder.RegisterType<FormMain>();
             builder.RegisterType<FormSettings>();
             builder.RegisterType<FormRestoreBackup>();
             builder.RegisterType<FormFileManager>();
+            builder.RegisterType<FormTabEdit>();
         }
     }
 }

@@ -27,6 +27,7 @@ namespace SecureMemo.InputForms
         private void btnOk_Click(object sender, EventArgs e)
         {
             TryToSetPassword();
+
         }
 
         private bool ValidatePasswords()
@@ -42,28 +43,45 @@ namespace SecureMemo.InputForms
             return errorMessage == null;
         }
 
+        private bool ValidateInputStringAsPassword(string inputStr)
+        {
+            if (string.IsNullOrEmpty(inputStr))
+            {
+                return false;
+            }
+
+            return txtPassword1.Text == txtPassword2.Text && (passwordPattern.IsMatch(txtPassword1.Text));
+        }
+
         private void txtPassword1_Enter(object sender, EventArgs e)
         {
-            txtPassword1.SelectAll();
+            if (sender is TextBox txtBox)
+            {
+                txtBox.SelectAll();
+
+            }
         }
 
         private void txtPassword2_Enter(object sender, EventArgs e)
         {
-            txtPassword2.SelectAll();
+            if (sender is TextBox txtBox)
+            {
+                txtBox.SelectAll();
+
+            }
         }
 
         private void txtPasswordFields_KeyUp(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.Enter && txtPassword1.Text.Length > 0 && txtPassword2.Text.Length > 0)
-                e.Handled = true;
-        }
-
-        private void txtPasswordFields_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Enter && txtPassword1.Text.Length > 0 && txtPassword2.Text.Length > 0)
+            if (sender is TextBox txtBoxSender)
             {
-                e.Handled = true;
-                TryToSetPassword();
+                TextBox otherTextBox = txtBoxSender == txtPassword1 ? txtPassword2 : txtPassword1;
+                if (e.KeyCode == Keys.Enter && txtBoxSender.Text.Length > 0 && txtPassword2.Text.Length > 0)
+                {
+                    e.Handled = true;
+                    e.SuppressKeyPress = true;
+                }
+
             }
         }
 

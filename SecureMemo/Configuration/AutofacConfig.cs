@@ -3,7 +3,10 @@ using System.Reflection;
 using Autofac;
 using GeneralToolkitLib.ConfigHelper;
 using GeneralToolkitLib.Configuration;
+using GeneralToolkitLib.Storage.Memory;
+using SecureMemo.FormDeligationManagers;
 using SecureMemo.Services;
+using SecureMemo.TextSearchModels;
 using SecureMemo.Utility;
 
 namespace SecureMemo.Configuration
@@ -16,13 +19,15 @@ namespace SecureMemo.Configuration
             string iniConfigFilePath = Path.Combine(ApplicationBuildConfig.UserDataPath, "ApplicationSettings.ini");
             var appSettings = new AppSettingsService(ConfigHelper.GetDefaultSettings(), new IniConfigFileManager(), iniConfigFilePath);
             var memoStorageService = new MemoStorageService(appSettings, settingsFolderPath);
+            var passwordStorageMgr = new PasswordStorage();
 
             // Create autofac container
             var builder = new ContainerBuilder();
-            builder.RegisterInstance(appSettings).As<AppSettingsService>();
-            builder.RegisterInstance(memoStorageService).As<MemoStorageService>();
+            builder.RegisterInstance(appSettings).As<AppSettingsService>().SingleInstance();
+            builder.RegisterInstance(memoStorageService).As<MemoStorageService>().SingleInstance();
+            builder.RegisterInstance(new FileStorageService()).As<FileStorageService>().SingleInstance();
+            builder.RegisterInstance(passwordStorageMgr).As<PasswordStorage>().SingleInstance();
 
-            builder.RegisterInstance(new FileStorageService()).As<FileStorageService>();
 
             var generalToolKitAssembly = AssemblyHelper.GetAssembly();
             if (generalToolKitAssembly != null)
@@ -30,15 +35,20 @@ namespace SecureMemo.Configuration
                 builder.RegisterAssemblyModules(generalToolKitAssembly);
             }
 
-            builder.RegisterAssemblyModules(Assembly.GetCallingAssembly());
+            builder.RegisterAssemblyModules(Assembly.GetExecutingAssembly());
+
+
+            builder.RegisterType<MainFormLogicManager>().AsSelf().SingleInstance();
+            builder.RegisterType<ServiceBase>().AsImplementedInterfaces().InstancePerLifetimeScope();
+
+            // Register instantiation of Search engine
+            builder.RegisterType<TabSearchEngine>().AsSelf().InstancePerLifetimeScope();
+
+
+            
             var container = builder.Build();
 
             return container;
-        }
-
-        public static Assembly GetSecureMemoAssembly()
-        {
-            return Assembly.GetExecutingAssembly();
         }
     }
 }

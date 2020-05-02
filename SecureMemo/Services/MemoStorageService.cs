@@ -5,6 +5,7 @@ using System.Linq;
 using GeneralToolkitLib.Storage;
 using GeneralToolkitLib.Storage.Models;
 using SecureMemo.DataModels;
+using SecureMemo.Storage;
 using Serilog;
 
 namespace SecureMemo.Services
@@ -15,14 +16,15 @@ namespace SecureMemo.Services
         private const string ConfSaltVal = "l73hgwiHLwscWqHQUT7vwJSTX58K0XWZlecm77NbzmqbsF60LOEeftqSdeSvL6cB";
         private const string ConfSaltVal2 = "BxV0CQsjr6f7MbiXTqdpHN4bjyhqUX9Yd79zA2vRZLGPQj0qdTGlTwBFiK7eiFqc";
         private readonly string _databaseFilePath;
-        private readonly AppSettingsService _appSettingsService;        
+        private readonly AppSettingsService _appSettingsService;
 
         public MemoStorageService(AppSettingsService appSettingsService, string databaseFilePath)
         {
             _appSettingsService = appSettingsService;
-            _databaseFilePath = databaseFilePath;}
+            _databaseFilePath = databaseFilePath;
+        }
 
-        public bool FoundDatabaseErrors { get; set; }
+        public bool FoundDatabaseErrors { get; private set; }
 
         private string GetFullPathToDatabaseFile()
         {
@@ -46,7 +48,7 @@ namespace SecureMemo.Services
 
         public TabPageDataCollection LoadTabPageCollection(string password)
         {
-            
+
             TabPageDataCollection tabPageDataCollection = null;
             try
             {
@@ -65,9 +67,26 @@ namespace SecureMemo.Services
             return tabPageDataCollection;
         }
 
+        public bool SaveTabPageCollection(TabPageDataCollection tabPageDataCollection, string password)
+        {
+            bool success = false;
+            try
+            {
+                var settings = new StorageManagerSettings(true, Environment.ProcessorCount, true, password);
+                var storageManager = new StorageManager(settings);
+                success = storageManager.SerializeObjectToFile(tabPageDataCollection, GetFullPathToDatabaseFile(), null);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error saving database");
+            }
 
 
-        public bool SaveTabPageCollection(TabPageDataCollection tabPageDataCollection, string password, bool saveToSharedFolder = false)
+            FoundDatabaseErrors = false;
+            return success;
+        }
+
+        public bool SaveTabPageCollectionToSharedFolder(TabPageDataCollection tabPageDataCollection, string password)
         {
             bool success = false;
             try
@@ -75,18 +94,13 @@ namespace SecureMemo.Services
                 var settings = new StorageManagerSettings(true, Environment.ProcessorCount, true, password);
                 var storageManager = new StorageManager(settings);
 
-                if (saveToSharedFolder)
-                {
-                    string encodedConfigFilePath = GetFullPathToSharedDatabaseFile();
-                    if (File.Exists(encodedConfigFilePath))
-                        File.Delete(encodedConfigFilePath);
+                string encodedConfigFilePath = GetFullPathToSharedDatabaseFile();
+                if (File.Exists(encodedConfigFilePath))
+                    File.Delete(encodedConfigFilePath);
 
-                    settings.Password = ConfSaltVal + settings.Password + ConfSaltVal2;
-                    File.Copy(GetFullPathToDatabaseFile(), encodedConfigFilePath);
-                    success = storageManager.SerializeObjectToFile(_appSettingsService.Settings, GetFullPathToSharedDecryptedConfigFile(), null);
-                }
-                else
-                    success = storageManager.SerializeObjectToFile(tabPageDataCollection, GetFullPathToDatabaseFile(), null);
+                settings.Password = ConfSaltVal + settings.Password + ConfSaltVal2;
+                File.Copy(GetFullPathToDatabaseFile(), encodedConfigFilePath);
+                success = storageManager.SerializeObjectToFile(_appSettingsService.Settings, GetFullPathToSharedDecryptedConfigFile(), null);
             }
             catch (Exception ex)
             {

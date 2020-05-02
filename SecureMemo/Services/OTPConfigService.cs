@@ -2,7 +2,7 @@
 using System.IO;
 using System.Security.Cryptography;
 using GeneralToolkitLib.Converters;
-
+using GeneralToolkitLib.OTP;
 using SecureMemo.DataModels;
 using Serilog;
 
@@ -27,7 +27,7 @@ namespace SecureMemo.Services
         /// </summary>
         /// <param name="password"></param>
         /// <returns>Password hash</returns>
-        public string Create(string password)
+        public string Create(string password, Authenticator.SecretKeyLength keyLength)
         {
 
             using (var randomNumberGenerator = RandomNumberGenerator.Create())
@@ -40,7 +40,7 @@ namespace SecureMemo.Services
                 randomNumberGenerator.GetBytes(salt2Bytes);
 
                 PasswordHash = CreatePasswordHash(salt1Bytes, salt2Bytes, passwordBytes);
-                _otpSettings = new OTPSettings(GeneralToolkitLib.OTP.Authenticator.GenerateKey(), salt1Bytes, salt2Bytes);
+                _otpSettings = new OTPSettings(Authenticator.GenerateKey(keyLength), salt1Bytes, salt2Bytes);
                 Initialized = true;
                 return PasswordHash;
             }

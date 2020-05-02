@@ -45,7 +45,12 @@ namespace SecureMemo
         private void txtFindText_KeyUp(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)
+            {
+                e.Handled = true;
+                e.SuppressKeyPress = true;
                 PerformSearch();
+            }
+                
         }
 
         private void PerformSearch()

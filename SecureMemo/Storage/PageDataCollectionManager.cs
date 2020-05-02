@@ -1,10 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using SecureMemo.DataModels;
 using Serilog;
 
-namespace SecureMemo.Services
+namespace SecureMemo.Storage
 {
     public class PageDataCollectionManager
     {
@@ -23,13 +22,13 @@ namespace SecureMemo.Services
                 List<int> keyList = _dataCollection.TabPageDictionary.Keys.ToList();
                 _dataCollection.TabPageDictionary.Remove(tabIndex);
 
-                if (_dataCollection.ActiveTabIndex==tabIndex)
+                if (_dataCollection.ActiveTabIndex == tabIndex)
                 {
                     if (tabIndex == 0)
                     {
                         _dataCollection.ActiveTabIndex = _dataCollection.TabPageDictionary.Values.Select(x => x.PageIndex).First();
                     }
-                    else if (tabIndex == _dataCollection.TabPageDictionary.Count-1)
+                    else if (tabIndex == _dataCollection.TabPageDictionary.Count - 1)
                     {
                         _dataCollection.ActiveTabIndex = _dataCollection.TabPageDictionary.Values.Select(x => x.PageIndex).Last();
                     }
@@ -48,14 +47,8 @@ namespace SecureMemo.Services
 
         public bool ValidateDataCollectionIntegrity()
         {
-            var pageKeyList = new List<int>();
-            using (var keyEnum = _dataCollection.TabPageDictionary.Keys.GetEnumerator())
-            {
-                while (keyEnum.MoveNext())
-                {
-                    pageKeyList.Add(keyEnum.Current);
-                }
-            }
+            List<int> pageKeyList = _dataCollection.TabPageDictionary.Keys.OrderBy(i => i).ToList();
+
 
             // Check for duplicate page ids
             if (pageKeyList.Distinct().Count() != pageKeyList.Count || (pageKeyList.Max() > pageKeyList.Count))

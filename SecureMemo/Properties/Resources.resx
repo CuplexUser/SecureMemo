@@ -124,7 +124,7 @@
     <value>Error loading application settings</value>
   </data>
   <data name="FormMain__Database_Saved" xml:space="preserve">
-    <value>Database Saved</value>
+    <value>Database SaveDatabased</value>
   </data>
   <data name="FormMain_saveToSharedFolderMenuDisabled" xml:space="preserve">
     <value>Shared Folder is disabled in settings</value>

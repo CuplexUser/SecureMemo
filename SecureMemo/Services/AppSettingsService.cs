@@ -131,6 +131,7 @@ namespace SecureMemo.Services
                 generalConfigFileSection.ConfigItems["AlwaysOnTop"] = Settings.AlwaysOnTop ? "True" : "False";
                 generalConfigFileSection.ConfigItems["MainWindowWith"] = Settings.MainWindowWith.ToString();
                 generalConfigFileSection.ConfigItems["MainWindowHeight"] = Settings.MainWindowHeight.ToString();
+                //Todo handle window states
 
                 // Shared Database folder
                 generalConfigFileSection.ConfigItems["UseSharedSyncFolder"] = Settings.UseSharedSyncFolder ? "True" : "False";
@@ -149,7 +150,7 @@ namespace SecureMemo.Services
             }
             catch (Exception ex)
             {
-                Log.Error(ex,"Error in AppSettings Save");
+                Log.Error(ex,"Error in AppSettings SaveDatabase");
             }
         }
     }

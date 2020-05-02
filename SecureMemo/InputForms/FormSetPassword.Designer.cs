@@ -91,7 +91,6 @@
             this.txtPassword2.Size = new System.Drawing.Size(240, 22);
             this.txtPassword2.TabIndex = 1;
             this.txtPassword2.Enter += new System.EventHandler(this.txtPassword2_Enter);
-            this.txtPassword2.KeyDown += new System.Windows.Forms.KeyEventHandler(this.txtPasswordFields_KeyDown);
             this.txtPassword2.KeyUp += new System.Windows.Forms.KeyEventHandler(this.txtPasswordFields_KeyUp);
             // 
             // label2
@@ -113,7 +112,6 @@
             this.txtPassword1.TabIndex = 0;
             this.txtPassword1.Tag = "";
             this.txtPassword1.Enter += new System.EventHandler(this.txtPassword1_Enter);
-            this.txtPassword1.KeyDown += new System.Windows.Forms.KeyEventHandler(this.txtPasswordFields_KeyDown);
             this.txtPassword1.KeyUp += new System.Windows.Forms.KeyEventHandler(this.txtPasswordFields_KeyUp);
             // 
             // FormSetPassword

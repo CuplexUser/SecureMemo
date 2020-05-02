@@ -7,23 +7,24 @@ using GeneralToolkitLib.Encryption.License.StaticData;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using UnitTests.Properties;
 
-namespace UnitTests
+namespace UnitTests.Misc
 {
-    [TestClass]
+    // Non relevant------------------------------------
+    //[TestClass]
     public class LicenseTests
     {
         private const string LicenseReqFilename = "LicenseRequest.txt";
         private const string LicenseKeyFilename = "License.txt";
         private readonly LicenseService licenseService = LicenseService.Instance;
 
-        [TestInitialize]
+        //[TestInitialize]
         public void InitClass()
         {
             licenseService.Init(SerialNumbersSettings.ProtectedApp.SecureMemo);
             
         }
 
-        [TestMethod]
+        //[TestMethod]
         public void TestGenerateLicenseRequest()
         {
             var registrationData = new RegistrationDataModel
@@ -39,7 +40,7 @@ namespace UnitTests
             var registrationDataManager = RegistrationDataManager.Create(registrationData);
             string licenseRequestString = registrationDataManager.SerializeToString();
 
-            // Save to file
+            // SaveDatabase to file
             FileStream fs = null;
             try
             {
@@ -63,7 +64,8 @@ namespace UnitTests
             //System.Diagnostics.Process.Start(LicenseReqFilename);
         }
 
-        [TestMethod]
+        // Non relevant
+        //[TestMethod]
         public void TestValidateGeneratedRequest()
         {
             Assert.IsTrue(File.Exists(LicenseReqFilename), "No license request file was found. Please run 'TestGenerateLicenseRequest' first");

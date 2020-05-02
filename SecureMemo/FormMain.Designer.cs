@@ -150,7 +150,7 @@
             this.saveToolStripMenuItem.Name = "saveToolStripMenuItem";
             this.saveToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.S)));
             this.saveToolStripMenuItem.Size = new System.Drawing.Size(270, 22);
-            this.saveToolStripMenuItem.Text = "Save";
+            this.saveToolStripMenuItem.Text = "SaveDatabase";
             this.saveToolStripMenuItem.Click += new System.EventHandler(this.saveToolStripMenuItem_Click);
             // 
             // saveToSharedFolderToolStripMenuItem
@@ -160,8 +160,8 @@
             this.saveToSharedFolderToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) 
             | System.Windows.Forms.Keys.S)));
             this.saveToSharedFolderToolStripMenuItem.Size = new System.Drawing.Size(270, 22);
-            this.saveToSharedFolderToolStripMenuItem.Text = "Save To Shared Folder";
-            this.saveToSharedFolderToolStripMenuItem.Click += new System.EventHandler(this.saveToSharedFolderToolStripMenuItem_Click);
+            this.saveToSharedFolderToolStripMenuItem.Text = "SaveDatabase To Shared Folder";
+            this.saveToSharedFolderToolStripMenuItem.Click += new System.EventHandler(this.SaveToSharedFolderToolStripMenuItem_Click);
             // 
             // toolStripMenuItem2
             // 
@@ -511,7 +511,7 @@
             this.renameTabToolStripMenuItem.Name = "renameTabToolStripMenuItem";
             this.renameTabToolStripMenuItem.Size = new System.Drawing.Size(138, 22);
             this.renameTabToolStripMenuItem.Text = "Rename Tab";
-            this.renameTabToolStripMenuItem.Click += new System.EventHandler(this.renameTabToolStripMenuItem_Click);
+            this.renameTabToolStripMenuItem.Click += new System.EventHandler(this.RenameTabToolStripMenuItem_Click);
             // 
             // toolStripMenuItem3
             // 

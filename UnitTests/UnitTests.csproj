@@ -7,7 +7,7 @@
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>UnitTests</RootNamespace>
-    <AssemblyName>UnitTests</AssemblyName>
+    <AssemblyName>SecureMemo.UnitTests</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{3AC096D0-A1C2-E12C-1390-A8335801FDAB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
@@ -57,13 +57,18 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
-    <Compile Include="LicenseTests.cs" />
+    <Compile Include="DataModels\FileStorageTests.cs" />
+    <Compile Include="Misc\LicenseTests.cs" />
+    <Compile Include="ObjectModels\PasswordProtectedMemoryStorageTests.cs" />
+    <Compile Include="PersistedSettings\TestLoadingSettings.cs" />
+    <Compile Include="PersistedSettings\TestSavingSettings.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="ObjectModels\TabCollectionModelTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\GeneralToolkitLib\GeneralToolkitLib\GeneralToolkitLib.csproj">
@@ -89,6 +94,10 @@
     <PackageReference Include="JetBrains.DotMemoryUnit">
       <Version>3.1.20200127.214830</Version>
     </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="ServiceTests\" />
+    <Folder Include="TestConfigurationSetup\" />
   </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">

@@ -4,7 +4,10 @@ using System.ComponentModel;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
+using Autofac;
 using SecureMemo.DataModels;
+using SecureMemo.FormDeligationManagers;
+using SecureMemo.Library;
 
 namespace SecureMemo
 {
@@ -12,52 +15,76 @@ namespace SecureMemo
     {
         private const int MaxLabelLength = 20;
         private const int MinLabelLength = 1;
-        private readonly TabPageDataCollection _tabPageDataCollection;
         private readonly List<DraggableListItem> _listViewDataSource;
+        private readonly ILifetimeScope _scope;
+        private TabPageCollectionStates _tabPageCollectionStates;
 
-        public FormTabEdit(TabPageDataCollection tabPageDataCollection)
+        public FormTabEdit(ILifetimeScope scope)
         {
-            _tabPageDataCollection = tabPageDataCollection;
-            VerifyAndCorrectIndexing(_tabPageDataCollection);
-            _listViewDataSource = tabPageDataCollection.TabPageDictionary.Select(x => x.Value).Select(x => new DraggableListItem { Index = x.PageIndex, Label = x.TabPageLabel, PageData = x }).ToList();
+            _scope = scope;
+            MainFormLogicManager logicManager = _scope.Resolve<MainFormLogicManager>();
+
+            var tabPageDataCollection = logicManager.GetTabPageDataCollection();
+            _listViewDataSource = tabPageDataCollection.Select(x => new DraggableListItem { Index = x.PageIndex, Label = x.TabPageLabel, PageData = x }).ToList();
             InitializeComponent();
+
+            _tabPageCollectionStates = new TabPageCollectionStates();
+            _tabPageCollectionStates.SetInitialState(tabPageDataCollection);
+            
+
+            scope.CurrentScopeEnding += Scope_CurrentScopeEnding;
         }
+
+        private void Scope_CurrentScopeEnding(object sender, Autofac.Core.Lifetime.LifetimeScopeEndingEventArgs e)
+        {
+            _listViewDataSource?.ForEach(x => x.PageData = null);
+            _listViewDataSource?.Clear();
+            GC.Collect();
+        }
+
+
+
 
         public bool TabDataChanged { get; private set; }
 
-        private void VerifyAndCorrectIndexing(TabPageDataCollection tabPageDataCollection)
-        {
-            var pageIndexList = tabPageDataCollection.TabPageDictionary.Values.Select(x => x.PageIndex).ToList();
-            bool incorrectPageIndexFound = pageIndexList.Any(i => i >= pageIndexList.Count) || tabPageDataCollection.TabPageDictionary.Any(x => x.Value.PageIndex != x.Key);
-            if (!incorrectPageIndexFound) return;
+        //private void VerifyAndCorrectIndexing(TabPageDataCollection tabPageDataCollection)
+        //{
+        //    var pageIndexList = tabPageDataCollection.TabPageDictionary.Values.Select(x => x.PageIndex).ToList();
+        //    bool incorrectPageIndexFound = pageIndexList.Any(i => i >= pageIndexList.Count) || tabPageDataCollection.TabPageDictionary.Any(x => x.Value.PageIndex != x.Key);
+        //    if (!incorrectPageIndexFound) return;
 
-            var tabPageDataList = tabPageDataCollection.TabPageDictionary.Values.ToList();
-            tabPageDataCollection.TabPageDictionary.Clear();
+        //    var tabPageDataList = tabPageDataCollection.TabPageDictionary.Values.ToList();
+        //    tabPageDataCollection.TabPageDictionary.Clear();
 
-            for (int i = 0; i < tabPageDataList.Count; i++)
-            {
-                tabPageDataList[i].PageIndex = i;
-                tabPageDataCollection.TabPageDictionary.Add(i, tabPageDataList[i]);
-            }
+        //    for (int i = 0; i < tabPageDataList.Count; i++)
+        //    {
+        //        tabPageDataList[i].PageIndex = i;
+        //        tabPageDataCollection.TabPageDictionary.Add(i, tabPageDataList[i]);
+        //    }
 
 
-            TabDataChanged = true;
-        }
+        //    TabDataChanged = true;
+        //}
 
         private void btnOk_Click(object sender, EventArgs e)
         {
-            _tabPageDataCollection.TabPageDictionary.Clear();
-            foreach (DraggableListItem draggableListItem in _listViewDataSource)
-            {
-                int index = draggableListItem.Index;
-                _tabPageDataCollection.TabPageDictionary[index] = draggableListItem.PageData;
-                _tabPageDataCollection.TabPageDictionary[index].PageIndex = draggableListItem.Index;
-                _tabPageDataCollection.TabPageDictionary[index].TabPageLabel = draggableListItem.Label;
-            }
+            MainFormLogicManager logicManager = _scope.Resolve<MainFormLogicManager>();
+            //foreach (DraggableListItem draggableListItem in _listViewDataSource)
+            //{
+            //    int index = draggableListItem.Index;
 
-            int lastIndex = _tabPageDataCollection.TabPageDictionary.Values.Max(x => x.PageIndex);
-            if (_tabPageDataCollection.ActiveTabIndex > lastIndex)
-                _tabPageDataCollection.ActiveTabIndex = lastIndex;
+            //    _tabPageDataCollection.TabPageDictionary.Add(index, draggableListItem.PageData);
+            //    _
+            //}
+
+            // set types of updates and sync the model db in response.
+
+
+
+            
+            //int lastIndex = _tabPageDataCollection.TabPageDictionary.Values.Max(x => x.PageIndex);
+            //if (_tabPageDataCollection.ActiveTabIndex > lastIndex)
+            //    _tabPageDataCollection.ActiveTabIndex = lastIndex;
 
             DialogResult = DialogResult.OK;
             Close();
@@ -71,7 +98,7 @@ namespace SecureMemo
 
         private void frmTabEdit_Load(object sender, EventArgs e)
         {
-            if (_tabPageDataCollection != null)
+            if (_listViewDataSource != null)
                 LoadTabPageCollection();
         }
 
@@ -209,6 +236,7 @@ namespace SecureMemo
             string tabPageLabel = "Page" + (newIndex);
             var tabPageData = new TabPageData { PageIndex = newIndex, TabPageLabel = tabPageLabel, TabPageText = "" };
             tabPageData.GenerateUniqueIdIfNoneExists();
+
             _listViewDataSource.Add(new DraggableListItem { Index = newIndex, Label = tabPageLabel, PageData = tabPageData });
 
             TabDataChanged = true;
@@ -223,7 +251,7 @@ namespace SecureMemo
 
             //Reindex collection
             int pageIndex = 0;
-            foreach (DraggableListItem draggableListItem in _listViewDataSource)
+            foreach (DraggableListItem draggableListItem in _listViewDataSource.OrderBy(x => x.PageData.PageIndex))
             {
                 draggableListItem.Index = pageIndex;
                 pageIndex++;
@@ -250,9 +278,45 @@ namespace SecureMemo
 
         private class DraggableListItem : IComparable<DraggableListItem>
         {
-            public int Index { get; set; }
-            public string Label { get; set; }
+            private int _index;
+            private string _label;
+
+            public int Index
+            {
+                get
+                {
+                    return _index;
+                }
+                set
+                {
+                    _index = value;
+                    UpdatePageData();
+                }
+            }
+
+            public string Label
+            {
+                get
+                {
+                    return _label;
+                }
+                set
+                {
+                    _label = value;
+                    UpdatePageData();
+                }
+
+            }
             public TabPageData PageData { get; set; }
+
+            private void UpdatePageData()
+            {
+                if (PageData != null)
+                {
+                    PageData.TabPageLabel = Label;
+                    PageData.PageIndex = Index;
+                }
+            }
 
             public int CompareTo(DraggableListItem other)
             {

@@ -26,6 +26,11 @@ namespace SecureMemo.UserControls
 
         private void btnOk_Click(object sender, EventArgs e)
         {
+            CompleteTabPageRenaming();
+        }
+
+        private void CompleteTabPageRenaming()
+        {
             //validate
             if (txtNewName.Text.Length == 0)
             {
@@ -47,6 +52,16 @@ namespace SecureMemo.UserControls
             {
                 ParentForm.DialogResult = DialogResult.Cancel;
                 ParentForm.Close();
+            }
+        }
+
+        private void txtNewName_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                e.Handled = true;
+                e.SuppressKeyPress = true;
+                CompleteTabPageRenaming();
             }
         }
     }

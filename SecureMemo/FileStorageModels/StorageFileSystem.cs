@@ -71,9 +71,8 @@ namespace SecureMemo.FileStorageModels
             _directories.Add(storageDirectory);
             _directoryIdSet.Add(storageDirectory.Id);
 
-            if (DirectoryStructureChanged != null)
-                DirectoryStructureChanged.Invoke(this,
-                    new StorageDirectorySystemEventArgs {DirectoryEventType = StorageFileSystemEventTypes.Created, DirectoryId = storageDirectory.Id, ParentDirectoryId = storageDirectory.ParentId});
+            DirectoryStructureChanged?.Invoke(this,
+                new StorageDirectorySystemEventArgs {DirectoryEventType = StorageFileSystemEventTypes.Created, DirectoryId = storageDirectory.Id, ParentDirectoryId = storageDirectory.ParentId});
 
             return storageDirectory.Id;
         }
@@ -87,9 +86,8 @@ namespace SecureMemo.FileStorageModels
             _directories.Remove(storageDirectory);
             _directoryIdSet.Remove(storageDirectory.Id);
 
-            if (DirectoryStructureChanged != null)
-                DirectoryStructureChanged.Invoke(this,
-                    new StorageDirectorySystemEventArgs {DirectoryEventType = StorageFileSystemEventTypes.Deleted, DirectoryId = directoryId, ParentDirectoryId = storageDirectory.ParentId});
+            DirectoryStructureChanged?.Invoke(this,
+                new StorageDirectorySystemEventArgs {DirectoryEventType = StorageFileSystemEventTypes.Deleted, DirectoryId = directoryId, ParentDirectoryId = storageDirectory.ParentId});
 
             return true;
         }
@@ -105,9 +103,8 @@ namespace SecureMemo.FileStorageModels
 
             storageDirectory.DirectoryName = newDirectoryName;
 
-            if (DirectoryStructureChanged != null)
-                DirectoryStructureChanged.Invoke(this,
-                    new StorageDirectorySystemEventArgs {DirectoryEventType = StorageFileSystemEventTypes.Renamed, DirectoryId = directoryId, ParentDirectoryId = storageDirectory.ParentId});
+            DirectoryStructureChanged?.Invoke(this,
+                new StorageDirectorySystemEventArgs {DirectoryEventType = StorageFileSystemEventTypes.Renamed, DirectoryId = directoryId, ParentDirectoryId = storageDirectory.ParentId});
 
             return true;
         }
@@ -134,8 +131,7 @@ namespace SecureMemo.FileStorageModels
             _fileIdSet.Add(storageFile.Id);
             _files.Add(storageFile);
 
-            if (FileStructureChanged != null)
-                FileStructureChanged.Invoke(this, new StorageFileSystemEventArgs {DirectoryId = storageFile.DirectoryId, FileId = storageFile.Id, FileEvent = StorageFileSystemEventTypes.Created});
+            FileStructureChanged?.Invoke(this, new StorageFileSystemEventArgs {DirectoryId = storageFile.DirectoryId, FileId = storageFile.Id, FileEvent = StorageFileSystemEventTypes.Created});
 
             return storageFile.Id;
         }

@@ -1,5 +1,4 @@
-﻿using System;
-using SecureMemo.FileStorageModels;
+﻿using SecureMemo.FileStorageModels;
 
 namespace SecureMemo.Services
 {

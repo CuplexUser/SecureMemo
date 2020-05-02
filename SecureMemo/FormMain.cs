@@ -1,9 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security;
 using System.Windows.Forms;
 using Autofac;
 using GeneralToolkitLib.Converters;
@@ -11,6 +11,7 @@ using GeneralToolkitLib.Encryption.License;
 using GeneralToolkitLib.Encryption.License.StaticData;
 using GeneralToolkitLib.Storage.Memory;
 using SecureMemo.DataModels;
+using SecureMemo.FormDeligationManagers;
 using SecureMemo.Forms;
 using SecureMemo.InputForms;
 using SecureMemo.Properties;
@@ -29,28 +30,28 @@ namespace SecureMemo
         private readonly ApplicationState _applicationState;
         private readonly AppSettingsService _appSettingsService;
         private readonly LicenseService _licenseService;
-        private readonly MemoStorageService _memoStorageService;
-        private readonly PasswordStorage _passwordStorage;
+        private readonly MainFormLogicManager _logicManager;
         private TabDropData _dropData;
         private FormFind _formFind;
-        private TabPageDataCollection _tabPageDataCollection;
+        private readonly PasswordStorage _passwordStorage;
         private TabSearchEngine _tabSearchEngine;
         private int _tabPageClickIndex = -1;
         private bool _isResizingWindow;
         private readonly ILifetimeScope _scope;
 
-        public FormMain(AppSettingsService appSettingsService, MemoStorageService memoStorageService, PasswordStorage passwordStorage, ILifetimeScope scope)
+        public FormMain(AppSettingsService appSettingsService, ILifetimeScope scope, MainFormLogicManager logicManager, PasswordStorage passwordStorage)
         {
             if (DesignMode)
                 return;
 
             _appSettingsService = appSettingsService;
-            _memoStorageService = memoStorageService;
-            _passwordStorage = passwordStorage;
+
             _scope = scope;
+            _logicManager = logicManager;
+            _passwordStorage = passwordStorage;
 
             _applicationState = new ApplicationState();
-            _tabPageDataCollection = TabPageDataCollection.CreateNewPageDataCollection(_appSettingsService.Settings.DefaultEmptyTabPages);
+
             _licenseService = LicenseService.Instance;
             InitializeComponent();
         }
@@ -105,8 +106,7 @@ namespace SecureMemo
             if (_applicationState.Initializing)
                 return;
 
-            _tabPageDataCollection.TabPageDictionary[tabControlNotepad.SelectedIndex].TabPageText = GetTextInTabControl(tabControlNotepad.SelectedIndex);
-
+            _logicManager.UpdateTabPageLabel(tabControlNotepad.SelectedIndex, GetTextInTabControl(tabControlNotepad.SelectedIndex));
             _applicationState.TabTextDataChanged = true;
             UpdateApplicationState();
         }
@@ -128,78 +128,75 @@ namespace SecureMemo
                 return;
 
             _applicationState.TabIndexChanged = true;
-            _tabPageDataCollection.ActiveTabIndex = tabControlNotepad.SelectedIndex;
+            _logicManager.SetActivePageIndex(tabControlNotepad.SelectedIndex);
 
             UpdateApplicationState();
         }
 
         private void UpdateTabControls()
         {
-            if (_applicationState.TabPageAddOrRemove)
-            {
-                _applicationState.Initializing = true;
-                bool pageRemoved = _tabPageDataCollection.TabPageDictionary.Count < tabControlNotepad.TabPages.Count;
-                bool pageAdded = _tabPageDataCollection.TabPageDictionary.Count > tabControlNotepad.TabPages.Count;
+            //if (_applicationState.TabPageAddOrRemove)
+            //{
+            //    if (pageRemoved)
+            //    {
+            //        using (var uiTabEnum = tabControlNotepad.TabPages.Cast<TabPage>().GetEnumerator())
+            //        {
+            //            while (uiTabEnum.MoveNext())
+            //            {
+            //                if (uiTabEnum.Current != null)
+            //                {
+            //                    int tabIndex = uiTabEnum.Current.TabIndex;
+            //                    if (!_tabPageDataCollection.TabPageDictionary.ContainsKey(tabIndex))
+            //                    {
+            //                        var tabPageToRemove = tabControlNotepad.TabPages[tabIndex];
+            //                        tabControlNotepad.TabPages.Remove(tabPageToRemove);
 
-                if (pageRemoved)
-                {
-                    using (var uiTabEnum = tabControlNotepad.TabPages.Cast<TabPage>().GetEnumerator())
-                    {
-                        while (uiTabEnum.MoveNext())
-                        {
-                            if (uiTabEnum.Current != null)
-                            {
-                                int tabIndex = uiTabEnum.Current.TabIndex;
-                                if (!_tabPageDataCollection.TabPageDictionary.ContainsKey(tabIndex))
-                                {
-                                    var tabPageToRemove = tabControlNotepad.TabPages[tabIndex];
-                                    tabControlNotepad.TabPages.Remove(tabPageToRemove);
+            //                        foreach (Control control in tabPageToRemove.Controls)
+            //                        {
+            //                            control.Dispose();
+            //                        }
 
-                                    foreach (Control control in tabPageToRemove.Controls)
-                                    {
-                                        control.Dispose();
-                                    }
+            //                        tabPageToRemove.Dispose();
 
-                                    tabPageToRemove.Dispose();
-
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-                else if (pageAdded)
-                {
-                    int tabPageIndexAdded = _tabPageDataCollection.TabPageDictionary.Max(x => x.Key);
+            //                        break;
+            //                    }
+            //                }
+            //            }
+            //        }
+            //    }
+            //    else if (pageAdded)
+            //    {
+            //        int tabPageIndexAdded = _tabPageDataCollection.TabPageDictionary.Max(x => x.Key);
 
 
-                    TabPageData tabPageData = _tabPageDataCollection.TabPageDictionary[tabPageIndexAdded];
-                    var tabPageControl = new MemoTabPageControl("MemoTabPageControl", tabPageIndexAdded) { Dock = DockStyle.Fill };
-                    var tabPage = new TabPage(tabPageData.TabPageLabel);
-                    tabPageControl.TabTextDataChanged += tabPageControl_TabTextDataChanged;
+            //        TabPageData tabPageData = _tabPageDataCollection.TabPageDictionary[tabPageIndexAdded];
+            //        var tabPageControl = new MemoTabPageControl("MemoTabPageControl", tabPageIndexAdded) { Dock = DockStyle.Fill };
+            //        var tabPage = new TabPage(tabPageData.TabPageLabel);
+            //        tabPageControl.TabTextDataChanged += tabPageControl_TabTextDataChanged;
 
-                    tabPage.Controls.Add(tabPageControl);
+            //        tabPage.Controls.Add(tabPageControl);
 
-                    if (ControlHelper.GetChildControlByName(tabPageControl, tabPageControl.TabPageControlTextboxName) is RichTextBox richTextBox)
-                    {
-                        SecureMemoFontSettings fontSettings = _appSettingsService.Settings.FontSettings;
-                        richTextBox.Font = new Font(fontSettings.FontFamily, fontSettings.FontSize, fontSettings.Style);
-                        richTextBox.Text = tabPageData.TabPageText;
-                        richTextBox.ContextMenuStrip = contextMenuTextArea;
-                        richTextBox.SelectionChanged += RichTextBox_SelectionChanged;
-                    }
+            //        if (ControlHelper.GetChildControlByName(tabPageControl, tabPageControl.TabPageControlTextboxName) is RichTextBox richTextBox)
+            //        {
+            //            SecureMemoFontSettings fontSettings = _appSettingsService.Settings.FontSettings;
+            //            richTextBox.Font = new Font(fontSettings.FontFamily, fontSettings.FontSize, fontSettings.Style);
+            //            richTextBox.Text = tabPageData.TabPageText;
+            //            richTextBox.ContextMenuStrip = contextMenuTextArea;
+            //            richTextBox.SelectionChanged += RichTextBox_SelectionChanged;
+            //        }
 
-                    tabControlNotepad.TabPages.Add(tabPage);
+            //        tabControlNotepad.TabPages.Add(tabPage);
 
-                }
+            //    }
 
-                _applicationState.TabPageAddOrRemove = false;
-                _applicationState.Initializing = false;                
-            }
+            //    _applicationState.TabPageAddOrRemove = false;
+            //    _applicationState.Initializing = false;
+            //}
 
         }
 
-        private void saveToSharedFolderToolStripMenuItem_Click(object sender, EventArgs e)
+        [SecurityCritical]
+        private void SaveToSharedFolderToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (!_appSettingsService.Settings.UseSharedSyncFolder)
             {
@@ -215,13 +212,17 @@ namespace SecureMemo
 
             var formSetPassword = new FormSetPassword();
             if (formSetPassword.ShowDialog(this) != DialogResult.OK)
+            {
+                formSetPassword.Dispose();
                 return;
+            }
+
 
             string password = formSetPassword.VerifiedPassword;
+            _passwordStorage.Set("SharedFolderPassword", password);
+            formSetPassword.Dispose();
 
-
-            _tabPageDataCollection.ActiveTabIndex = tabControlNotepad.SelectedIndex;
-            bool result = _memoStorageService.SaveTabPageCollection(_tabPageDataCollection, password, true);
+            bool result = _logicManager.SaveToSharedFolder();
 
             if (result)
                 MessageBox.Show("Database successfully saved to sync folder", Resources.FormMain__Database_Saved, MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -229,6 +230,7 @@ namespace SecureMemo
                 MessageBox.Show("Failed to save database to sync folder path", Resources.FormMain__Could_not_save, MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
+        [SecurityCritical]
         private void RestoreDatabaseFromSyncPathMenuItem_Click(object sender, EventArgs e)
         {
             if (_applicationState.DatabaseExists &&
@@ -238,16 +240,21 @@ namespace SecureMemo
 
             var formGetPassword = new FormGetPassword { UsePasswordValidation = false };
             if (formGetPassword.ShowDialog(this) != DialogResult.OK)
+            {
+                formGetPassword.Dispose();
                 return;
+            }
+
 
             string password = formGetPassword.PasswordString;
+            _passwordStorage.Set("RestoreDatabaseFromSync", password);
+            formGetPassword.Dispose();
 
-            _tabPageDataCollection = null;
             _applicationState.DatabaseLoaded = false;
             _appSettingsService.LoadSettings();
             InitFormSettings();
 
-            RestoreSyncDataResult result = _memoStorageService.RestoreBackupFromSyncFolder(password);
+            RestoreSyncDataResult result = _logicManager.RestoreBackupFromSyncFolder();
             if (result.Successful)
             {
                 MessageBox.Show("Database and app settings restored from sync folder.", "Restore complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -291,25 +298,26 @@ namespace SecureMemo
         {
             var p = new Point(e.X, e.Y);
             p = tabControlNotepad.PointToClient(p);
-            var tabDropData = e.Data.GetData(typeof(TabDropData)) as TabDropData;
 
-            if (tabDropData == null)
+            if (!(e.Data.GetData(typeof(TabDropData)) is TabDropData tabDropData))
                 return;
 
             int sourceIndex = tabDropData.SourceIndex;
 
-            for (int i = 0; i < tabControlNotepad.TabCount; i++)
-            {
-                if (sourceIndex == i)
-                    continue;
 
-                Rectangle tabRectangle = tabControlNotepad.GetTabRect(i);
-                if (!tabRectangle.Contains(p)) continue;
-                SwapTabs(sourceIndex, i);
-                tabDropData.SourceIndex = i;
-                e.Data.SetData(typeof(TabDropData), tabDropData);
-                break;
-            }
+            // TODO Update GUI tabs to give the impression that the dragged over TabPages are changing.
+            //for (int i = 0; i < tabControlNotepad.TabCount; i++)
+            //{
+            //    if (sourceIndex == i)
+            //        continue;
+
+            //    Rectangle tabRectangle = tabControlNotepad.GetTabRect(i);
+            //    if (!tabRectangle.Contains(p)) continue;
+            //    SwapTabs(sourceIndex, i);
+            //    tabDropData.SourceIndex = i;
+            //    e.Data.SetData(typeof(TabDropData), tabDropData);
+            //    break;
+            //}
         }
 
         private void tabControlNotepad_MouseDown(object sender, MouseEventArgs e)
@@ -334,17 +342,17 @@ namespace SecureMemo
             DoDragDrop(_dropData, DragDropEffects.Move);
         }
 
-        private void SwapTabs(int sourceIndex, int destinationIndex)
-        {
-            TabPageData tabData = _tabPageDataCollection.TabPageDictionary[sourceIndex];
-            _tabPageDataCollection.TabPageDictionary[sourceIndex] = _tabPageDataCollection.TabPageDictionary[destinationIndex];
-            _tabPageDataCollection.TabPageDictionary[destinationIndex] = tabData;
+        //private void SwapTabs(int sourceIndex, int destinationIndex)
+        //{
+        //    TabPageData tabData = _tabPageDataCollection.TabPageDictionary[sourceIndex];
+        //    _tabPageDataCollection.TabPageDictionary[sourceIndex] = _tabPageDataCollection.TabPageDictionary[destinationIndex];
+        //    _tabPageDataCollection.TabPageDictionary[destinationIndex] = tabData;
 
-            _tabPageDataCollection.TabPageDictionary[sourceIndex].PageIndex = sourceIndex;
-            _tabPageDataCollection.TabPageDictionary[destinationIndex].PageIndex = destinationIndex;
+        //    _tabPageDataCollection.TabPageDictionary[sourceIndex].PageIndex = sourceIndex;
+        //    _tabPageDataCollection.TabPageDictionary[destinationIndex].PageIndex = destinationIndex;
 
-            _tabPageDataCollection.ActiveTabIndex = destinationIndex;
-        }
+        //    _tabPageDataCollection.ActiveTabIndex = destinationIndex;
+        //}
 
         private class ApplicationState
         {
@@ -377,7 +385,7 @@ namespace SecureMemo
         {
             if (_applicationState.DatabaseLoaded && _applicationState.DatabaseExists)
             {
-                _tabPageDataCollection = TabPageDataCollection.CreateNewPageDataCollection(_appSettingsService.Settings.DefaultEmptyTabPages);
+                _logicManager.ResetToDefaultDatabase();
                 _applicationState.DatabaseLoaded = false;
                 _applicationState.TabIndexChanged = false;
                 _applicationState.TabPageAddOrRemove = false;
@@ -394,7 +402,7 @@ namespace SecureMemo
         private void InitializeTabControls()
         {
             _applicationState.Initializing = true;
-            if (!_memoStorageService.DatabaseExists())
+            if (!_logicManager.HasExistingDatabase)
             {
                 _applicationState.DatabaseLoaded = false;
                 _applicationState.DatabaseExists = false;
@@ -402,8 +410,7 @@ namespace SecureMemo
             else
                 _applicationState.DatabaseExists = true;
 
-            // Create tab pages
-            var keyList = new List<int>();
+            // Dispose current Tab controls
             foreach (TabPage tabPage in tabControlNotepad.TabPages)
             {
                 foreach (Control tabPageControl in tabPage.Controls)
@@ -416,11 +423,12 @@ namespace SecureMemo
             tabControlNotepad.TabPages.Clear();
 
 
-            foreach (int tabPageIndex in _tabPageDataCollection.TabPageDictionary.Keys)
+            for (int index = 0; index < _logicManager.PageCount; index++)
             {
-                TabPageData tabPageData = _tabPageDataCollection.TabPageDictionary[tabPageIndex];
-                var tabPageControl = new MemoTabPageControl("MemoTabPageControl", tabPageIndex) { Dock = DockStyle.Fill };
-                var tabPage = new TabPage(tabPageData.TabPageLabel);
+
+
+                var tabPageControl = new MemoTabPageControl("MemoTabPageControl", index) { Dock = DockStyle.Fill };
+                var tabPage = new TabPage(_logicManager.GetTabPageLabel(index));
                 tabPageControl.TabTextDataChanged += tabPageControl_TabTextDataChanged;
 
                 tabPage.Controls.Add(tabPageControl);
@@ -429,7 +437,7 @@ namespace SecureMemo
                 {
                     SecureMemoFontSettings fontSettings = _appSettingsService.Settings.FontSettings;
                     richTextBox.Font = new Font(fontSettings.FontFamily, fontSettings.FontSize, fontSettings.Style);
-                    richTextBox.Text = tabPageData.TabPageText;
+                    richTextBox.Text = _logicManager.GetTabPageText(index);
                     richTextBox.ContextMenuStrip = contextMenuTextArea;
                     richTextBox.SelectionChanged += RichTextBox_SelectionChanged;
                 }
@@ -437,7 +445,7 @@ namespace SecureMemo
                 tabControlNotepad.TabPages.Add(tabPage);
             }
 
-            tabControlNotepad.SelectedIndex = _tabPageDataCollection.ActiveTabIndex;
+            tabControlNotepad.SelectedIndex = _logicManager.ActivePageIndex;
             _applicationState.Initializing = false;
             _applicationState.FontSettingsChanged = false;
             UpdateApplicationState();
@@ -449,18 +457,10 @@ namespace SecureMemo
 
             if (richTextBox == null) return;
             if (_tabSearchEngine != null && !_tabSearchEngine.SelectionSetByCode)
-                _tabSearchEngine.ResetSearchState(_tabPageDataCollection.ActiveTabIndex, richTextBox.SelectionStart, richTextBox.SelectionLength);
+                _tabSearchEngine.ResetSearchState(_logicManager.ActivePageIndex, richTextBox.SelectionStart, richTextBox.SelectionLength);
         }
 
-        private void SaveFormDataToModel()
-        {
-            _tabPageDataCollection.ActiveTabIndex = tabControlNotepad.SelectedIndex;
-            _memoStorageService.SaveTabPageCollection(_tabPageDataCollection, _passwordStorage.Get(PwdKey));
-            _applicationState.TabIndexChanged = false;
-            _applicationState.TabTextDataChanged = false;
 
-            UpdateApplicationState();
-        }
 
         private string GetTextInTabControl(int tabIndex)
         {
@@ -486,7 +486,7 @@ namespace SecureMemo
 
                 if (_applicationState.UniqueIdMissingFromExistingTabPage)
                 {
-                    SaveFormDataToModel();
+                    _logicManager.SaveDatabase();;
                     _applicationState.UniqueIdMissingFromExistingTabPage = false;
                 }
             }
@@ -603,8 +603,8 @@ namespace SecureMemo
             }
 
             _passwordStorage.Set(PwdKey, password);
-            _tabPageDataCollection = TabPageDataCollection.CreateNewPageDataCollection(_appSettingsService.Settings.DefaultEmptyTabPages);
-            _memoStorageService.SaveTabPageCollection(_tabPageDataCollection, password);
+            _logicManager.CreateNewDatabase();
+
 
             _appSettingsService.Settings.PasswordDerivedString =
                 GeneralConverters.GeneratePasswordDerivedString(_appSettingsService.Settings.ApplicationSaltValue + password + _appSettingsService.Settings.ApplicationSaltValue);
@@ -616,37 +616,47 @@ namespace SecureMemo
             UpdateApplicationState();
         }
 
+        [SecurityCritical]
         private void openDatabaseToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var formGetPassword = new FormGetPassword
+            using (var formGetPassword = new FormGetPassword())
+
             {
-                PasswordSalt = _appSettingsService.Settings.ApplicationSaltValue,
-                PasswordDerivedString = _appSettingsService.Settings.PasswordDerivedString
-            };
+                formGetPassword.PasswordSalt = _appSettingsService.Settings.ApplicationSaltValue;
+                formGetPassword.PasswordDerivedString = _appSettingsService.Settings.PasswordDerivedString;
 
-            if (formGetPassword.ShowDialog(this) != DialogResult.OK) return;
-            string password = formGetPassword.PasswordString;
-            _passwordStorage.Set(PwdKey, password);
 
-            TabPageDataCollection tabPageCollection;
+                if (formGetPassword.ShowDialog(this) != DialogResult.OK)
+                    return;
+
+                string password = formGetPassword.PasswordString;
+                _passwordStorage.Set(PwdKey, password);
+            }
+
+            
+
+
+
             try
             {
-                tabPageCollection = _memoStorageService.LoadTabPageCollection(password);
 
-                if (_memoStorageService.FoundDatabaseErrors)
+                bool result = _logicManager.OpenDatabase();
+                //tabPageCollection = _memoStorageService.LoadTabPageCollection(password);
+
+                if (_logicManager.HasExistingDatabase)
                 {
-                    SaveFormDataToModel();
+                    _logicManager.SaveDatabase();
                     Log.Warning("FoundDatabaseErrors Saving new recreated database");
                 }
 
                 // Make sure that every tabPageData has a unique Id
-                bool uniqueIdCreated = tabPageCollection.TabPageDictionary.Values.Aggregate(false, (current, tabPageData) => current | tabPageData.GenerateUniqueIdIfNoneExists());
+                //bool uniqueIdCreated = tabPageCollection.TabPageDictionary.Values.Aggregate(false, (current, tabPageData) => current | tabPageData.GenerateUniqueIdIfNoneExists());
 
-                if (uniqueIdCreated)
-                    _applicationState.UniqueIdMissingFromExistingTabPage = true;
+                //if (uniqueIdCreated)
+                //    _applicationState.UniqueIdMissingFromExistingTabPage = true;
 
-                if (tabPageCollection.TabPageDictionary.Count == 0)
-                    tabPageCollection = TabPageDataCollection.CreateNewPageDataCollection(_appSettingsService.Settings.DefaultEmptyTabPages);
+                //if (tabPageCollection.TabPageDictionary.Count == 0)
+                //    tabPageCollection = TabPageDataCollection.CreateNewPageDataCollection(_appSettingsService.Settings.DefaultEmptyTabPages);
             }
             catch (Exception ex)
             {
@@ -655,7 +665,6 @@ namespace SecureMemo
                 return;
             }
 
-            _tabPageDataCollection = tabPageCollection;
             InitializeTabControls();
             _applicationState.DatabaseLoaded = true;
             _applicationState.TabIndexChanged = false;
@@ -664,21 +673,28 @@ namespace SecureMemo
             UpdateApplicationState();
         }
 
+
+
         private void saveToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            SaveFormDataToModel();
+            _logicManager.SaveDatabase();
         }
 
         private void changePasswordToolStripMenuItem_Click(object sender, EventArgs e)
         {
             var formSetPassword = new FormSetPassword { Text = "Choose a new password" };
-            if (formSetPassword.ShowDialog(this) != DialogResult.OK) return;
-            string password = formSetPassword.VerifiedPassword;
-            _passwordStorage.Set(PwdKey, password);
-            _memoStorageService.SaveTabPageCollection(_tabPageDataCollection, password);
+            if (formSetPassword.ShowDialog(this) != DialogResult.OK)
+            {
+                formSetPassword.Dispose();
+                return;
+            }
 
-            _appSettingsService.Settings.PasswordDerivedString =
-                GeneralConverters.GeneratePasswordDerivedString(_appSettingsService.Settings.ApplicationSaltValue + password + _appSettingsService.Settings.ApplicationSaltValue);
+            string password = formSetPassword.VerifiedPassword;
+            formSetPassword.Dispose();
+            _passwordStorage.Set(PwdKey, password);
+            _logicManager.SaveDatabase();
+
+            _appSettingsService.Settings.PasswordDerivedString =  GeneralConverters.GeneratePasswordDerivedString(_appSettingsService.Settings.ApplicationSaltValue + password + _appSettingsService.Settings.ApplicationSaltValue);
 
             _appSettingsService.SaveSettings();
             UpdateApplicationState();
@@ -692,22 +708,32 @@ namespace SecureMemo
 
         private void appendNewToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            int tabPageIndex = _tabPageDataCollection.TabPageDictionary.Max(p => p.Key) + 1;
-            var tabPageData = new TabPageData { PageIndex = tabPageIndex, TabPageLabel = "Page" + (tabPageIndex + 1) };
-            tabPageData.GenerateUniqueIdIfNoneExists();
-            _tabPageDataCollection.TabPageDictionary.Add(tabPageIndex, tabPageData);
+            _logicManager.AppendNewTabPage();
             _applicationState.TabPageAddOrRemove = true;
-            _tabPageDataCollection.ActiveTabIndex = tabPageData.PageIndex;
             UpdateTabControls();
         }
 
         private void tabWindowToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var formTabEdit = new FormTabEdit(_tabPageDataCollection);
-            if (formTabEdit.ShowDialog(this) != DialogResult.OK) return;
-            if (formTabEdit.TabDataChanged)
-                _applicationState.TabPageAddOrRemove = true;
+            using (var scope = _scope.BeginLifetimeScope())
+            {
+                var formTabEdit = scope.Resolve<FormTabEdit>();
+                if (formTabEdit.ShowDialog(this) != DialogResult.OK)
+                {
+                    return;
+                }
 
+                if (formTabEdit.TabDataChanged)
+                    _applicationState.TabPageAddOrRemove = true;
+            }
+
+
+
+            
+                
+            
+
+            
             InitializeTabControls(); ;
         }
 
@@ -719,11 +745,11 @@ namespace SecureMemo
                 if (_appSettingsService.Settings.FontSettings.HasChangedSinceLoaded)
                 {
                     _applicationState.FontSettingsChanged = true;
-                    
+
                     InitializeTabControls();
                     _appSettingsService.Settings.FontSettings.HasChangedSinceLoaded = false;
                     _appSettingsService.SaveSettings();
-                }                
+                }
             }
         }
 
@@ -731,7 +757,7 @@ namespace SecureMemo
         {
             try
             {
-                _memoStorageService.MakeBackup();
+                _logicManager.CreateBackup();
             }
             catch (Exception ex)
             {
@@ -774,18 +800,20 @@ namespace SecureMemo
 
         private void _formFind_OnFormClose(object sender, EventArgs e)
         {
-            if (_formFind == null) return;
+            if (_formFind == null) 
+                return;
+
             _formFind.OnSearch -= _formFind_OnSearch;
             _formFind.OnFormClose -= _formFind_OnFormClose;
 
+            _formFind.Dispose();
             _formFind = null;
             _tabSearchEngine = null;
         }
 
         private void _formFind_OnSearch(object sender, TextSearchEventArgs eventArgs)
         {
-            if (_tabSearchEngine == null)
-                _tabSearchEngine = new TabSearchEngine(_tabPageDataCollection);
+            _tabSearchEngine ??= _scope.Resolve<TabSearchEngine>();
 
             try
             {
@@ -803,9 +831,9 @@ namespace SecureMemo
                 if (searchResult.SearchTextFound)
                 {
                     _tabSearchEngine.SelectionSetByCode = true;
-                    if (searchResult.TabIndex != _tabPageDataCollection.ActiveTabIndex && searchProperties.SearchAllTabs)
+                    if (searchResult.TabIndex != _logicManager.ActivePageIndex && searchProperties.SearchAllTabs)
                     {
-                        _tabPageDataCollection.ActiveTabIndex = searchResult.TabIndex;
+                        _logicManager.SetActivePageIndex(searchResult.TabIndex);
                         tabControlNotepad.SelectedIndex = searchResult.TabIndex;
                     }
 
@@ -820,7 +848,7 @@ namespace SecureMemo
                 {
                     MessageBox.Show(Resources.FormMain__Search_string_not_found, Resources.FormMain__Not_found, MessageBoxButtons.OK, MessageBoxIcon.Information);
                     RichTextBox textBox = GetRichTextBoxInActiveTab();
-                    _tabSearchEngine.ResetSearchState(_tabPageDataCollection.ActiveTabIndex, textBox.SelectionStart, textBox.SelectionLength);
+                    _tabSearchEngine.ResetSearchState(tabControlNotepad.SelectedIndex, textBox.SelectionStart, textBox.SelectionLength);
                 }
             }
             catch (Exception ex)
@@ -832,37 +860,28 @@ namespace SecureMemo
 
         private void undoToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (!_tabPageDataCollection.TabPageDictionary.ContainsKey(_tabPageDataCollection.ActiveTabIndex))
-                return;
-
-            TabPageData tabPageData = _tabPageDataCollection.TabPageDictionary[_tabPageDataCollection.ActiveTabIndex];
             RichTextBox richTextBox = GetRichTextBoxInActiveTab();
 
             if (richTextBox != null && richTextBox.CanUndo)
+            {
                 richTextBox.Undo();
-            if (richTextBox != null) tabPageData.TabPageText = richTextBox.Text;
+                _logicManager.SetActiveTabPageText(richTextBox.Text);
+            }
         }
 
         private void cutToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (!_tabPageDataCollection.TabPageDictionary.ContainsKey(_tabPageDataCollection.ActiveTabIndex))
-                return;
-
-            TabPageData tabPageData = _tabPageDataCollection.TabPageDictionary[_tabPageDataCollection.ActiveTabIndex];
             RichTextBox richTextBox = GetRichTextBoxInActiveTab();
 
             if (!string.IsNullOrWhiteSpace(richTextBox?.SelectedText))
             {
                 richTextBox.Cut();
-                tabPageData.TabPageText = richTextBox.Text;
+                _logicManager.SetTabPageText(_logicManager.ActivePageIndex,richTextBox.Text);
             }
         }
 
         private void copyToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (!_tabPageDataCollection.TabPageDictionary.ContainsKey(_tabPageDataCollection.ActiveTabIndex))
-                return;
-
             RichTextBox richTextBox = GetRichTextBoxInActiveTab();
             if (!string.IsNullOrWhiteSpace(richTextBox?.SelectedText))
                 richTextBox.Copy();
@@ -870,26 +889,20 @@ namespace SecureMemo
 
         private void pasteToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (!_tabPageDataCollection.TabPageDictionary.ContainsKey(_tabPageDataCollection.ActiveTabIndex))
-                return;
-
             if (!Clipboard.ContainsText())
                 return;
-
-            TabPageData tabPageData = _tabPageDataCollection.TabPageDictionary[_tabPageDataCollection.ActiveTabIndex];
+            
             RichTextBox richTextBox = GetRichTextBoxInActiveTab();
 
             if (richTextBox == null) return;
             richTextBox.Paste();
-            tabPageData.TabPageText = richTextBox.Text;
+            _logicManager.SetActiveTabPageText(richTextBox.Text);
         }
 
         private RichTextBox GetRichTextBoxInActiveTab()
         {
-            if (!(tabControlNotepad.TabPages[_tabPageDataCollection.ActiveTabIndex].Controls[0] is MemoTabPageControl tabPageControl))
-                return null;
+            RichTextBox richTextBox = tabControlNotepad.SelectedTab?.GetChildControlByType(typeof(RichTextBox)).FirstOrDefault() as RichTextBox;
 
-            var richTextBox = ControlHelper.GetChildControlByName(tabPageControl, tabPageControl.TabPageControlTextboxName) as RichTextBox;
             return richTextBox;
         }
 
@@ -911,28 +924,33 @@ namespace SecureMemo
             contextMenuEditTabPage.Show(tabControlNotepad, e.Location);
         }
 
-        private void renameTabToolStripMenuItem_Click(object sender, EventArgs e)
+        private void RenameTabToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (_tabPageClickIndex < 0 || _tabPageClickIndex >= tabControlNotepad.TabCount)
             {
                 Log.Warning("Rename tab page could not find selected index: {_tabPageClickIndex}", _tabPageClickIndex);
                 return;
             }
-            var tabPage = tabControlNotepad.TabPages[_tabPageClickIndex];
 
-            var renameTabControl = new RenameTabPageControl { TabPageName = tabPage.Text };
+
+            int tabPageIndex = _tabPageClickIndex;
+
+            var renameTabControl = new RenameTabPageControl { TabPageName = _logicManager.GetTabPageLabel(tabPageIndex) };
             var renameTabForm = FormFactory.CreateFormFromUserControl(renameTabControl);
 
             if (renameTabForm.ShowDialog(this) == DialogResult.OK)
             {
                 string tabPageName = renameTabControl.TabPageName;
-                _tabPageDataCollection.TabPageDictionary[_tabPageClickIndex].TabPageLabel = tabPageName;
-                tabPage.Text = tabPageName;
+                _logicManager.SetTabPageLabel(tabPageIndex, tabPageName);
+                tabControlNotepad.TabPages[tabPageIndex].Text = tabPageName;
                 _applicationState.TabTextDataChanged = true;
             }
+
+            renameTabControl.Dispose();
+            renameTabForm.Dispose();
         }
 
-        private void deleteTabToolStripMenuItem_Click(object sender, EventArgs e)
+        private async void deleteTabToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (_tabPageClickIndex < 0 || _tabPageClickIndex >= tabControlNotepad.TabCount)
             {
@@ -940,19 +958,20 @@ namespace SecureMemo
                 return;
             }
 
-            if (_tabPageDataCollection.TabPageDictionary.Count == 1)
+            if (_logicManager.PageCount == 1)
             {
                 MessageBox.Show(this, "You must have atleast one tab page active", "Could not delete tab page", MessageBoxButtons.OK);
                 return;
             }
 
-            if (MessageBox.Show(this, "Are you sure you want to delete this tab page?", "Confirm delete", MessageBoxButtons.OKCancel) == DialogResult.OK)
+
+            int tabIndex= tabControlNotepad.SelectedIndex;
+
+
+            if (MessageBox.Show(this, $"Are you sure you want to delete this tab page with label: '{_logicManager.GetTabPageLabel(tabIndex)}' ?", "Confirm delete", MessageBoxButtons.OKCancel) == DialogResult.OK)
             {
-                if (_tabPageDataCollection.ActiveTabIndex > _tabPageDataCollection.TabPageDictionary.Count - 1)
-                {
-                    _tabPageDataCollection.ActiveTabIndex--;
-                }
-                _tabPageDataCollection.TabPageDictionary.Remove(_tabPageClickIndex);
+                await _logicManager.RemoveTabPageAsync(tabIndex).ConfigureAwait(true);
+
                 _applicationState.TabPageAddOrRemove = true;
                 UpdateTabControls();
             }
@@ -964,12 +983,12 @@ namespace SecureMemo
             {
                 if (IsDataModelChanged)
                 {
-                    if (MessageBox.Show("Are you sure you want to save and close the current open database?", "Save and close", MessageBoxButtons.OKCancel, MessageBoxIcon.Question) != DialogResult.OK)
+                    if (MessageBox.Show("Are you sure you want to save and close the current open database?", "SaveDatabase and close", MessageBoxButtons.OKCancel, MessageBoxIcon.Question) != DialogResult.OK)
                     {
                         return;
                     }
 
-                    SaveFormDataToModel();
+                    _logicManager.SaveDatabase();
                 }
 
                 if (CloseActiveDatabase())
