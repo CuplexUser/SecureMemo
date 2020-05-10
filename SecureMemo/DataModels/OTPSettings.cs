@@ -52,7 +52,7 @@ namespace SecureMemo.DataModels
             var msContent = new MemoryStream();
             int leftPaddingLength = secureRandom.GetRandomInt(64, 512);
             int rightPaddingLength = secureRandom.GetRandomInt(64, 512);
-            byte[] sharedSecretBytes = GeneralConverters.GetByteArrayFromString(SharedSecret);
+            byte[] sharedSecretBytes = GeneralConverters.StringToByteArray(SharedSecret);
             
             byte[] buffer= BitConverter.GetBytes(leftPaddingLength);
             msBlock.Write(buffer, 0, buffer.Length);

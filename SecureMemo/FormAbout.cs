@@ -6,7 +6,6 @@ using GeneralToolkitLib.Encryption.License;
 using GeneralToolkitLib.Encryption.License.DataModels;
 using GeneralToolkitLib.UserControls;
 
-
 namespace SecureMemo
 {
     public partial class FormAbout : Form

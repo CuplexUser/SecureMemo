@@ -11,9 +11,9 @@ using GeneralToolkitLib.Encryption.License;
 using GeneralToolkitLib.Encryption.License.StaticData;
 using GeneralToolkitLib.Storage.Memory;
 using SecureMemo.DataModels;
-using SecureMemo.FormDeligationManagers;
 using SecureMemo.Forms;
 using SecureMemo.InputForms;
+using SecureMemo.Managers;
 using SecureMemo.Properties;
 using SecureMemo.Services;
 using SecureMemo.TextSearchModels;
@@ -58,21 +58,6 @@ namespace SecureMemo
 
         protected bool IsDataModelChanged => _applicationState.TabIndexChanged || _applicationState.TabTextDataChanged || _applicationState.TabPageAddOrRemove;
 
-        private string AssemblyTitle
-        {
-            get
-            {
-                var attributes = Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyTitleAttribute), false);
-                if (attributes.Length > 0)
-                {
-                    var titleAttribute = (AssemblyTitleAttribute)attributes[0];
-                    if (titleAttribute.Title != "")
-                        return titleAttribute.Title;
-                }
-                return Path.GetFileNameWithoutExtension(Assembly.GetExecutingAssembly().CodeBase);
-            }
-        }
-
         private void frmMain_Load(object sender, EventArgs e)
         {
             try
@@ -83,7 +68,7 @@ namespace SecureMemo
                 LoadLicenseFile();
                 _licenseService.Init(SerialNumbersSettings.ProtectedApp.SecureMemo);
 
-                Text = AssemblyTitle + " - v" + Assembly.GetExecutingAssembly().GetName().Version;
+                Text = ConfigHelper.AssemblyTitle + " - v" + Assembly.GetExecutingAssembly().GetName().Version;
                 UpdateApplicationState();
             }
             catch (Exception ex)

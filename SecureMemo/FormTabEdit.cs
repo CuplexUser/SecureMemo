@@ -6,8 +6,8 @@ using System.Linq;
 using System.Windows.Forms;
 using Autofac;
 using SecureMemo.DataModels;
-using SecureMemo.FormDeligationManagers;
 using SecureMemo.Library;
+using SecureMemo.Managers;
 
 namespace SecureMemo
 {

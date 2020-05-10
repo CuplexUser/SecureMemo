@@ -1,4 +1,5 @@
 ﻿using GeneralToolkitLib.UserControls;
+
 namespace SecureMemo
 {
     partial class FormAbout

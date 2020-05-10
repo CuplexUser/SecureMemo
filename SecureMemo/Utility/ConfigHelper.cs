@@ -1,4 +1,6 @@
 ﻿using System.Drawing;
+using System.IO;
+using System.Reflection;
 using System.Security.Cryptography;
 using GeneralToolkitLib.Converters;
 using SecureMemo.DataModels;
@@ -33,6 +35,21 @@ namespace SecureMemo.Utility
             appSettings.PasswordDerivedString = null;
 
             return appSettings;
+        }
+        
+        public static string AssemblyTitle
+        {
+            get
+            {
+                var attributes = Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyTitleAttribute), false);
+                if (attributes.Length > 0)
+                {
+                    var titleAttribute = (AssemblyTitleAttribute)attributes[0];
+                    if (titleAttribute.Title != "")
+                        return titleAttribute.Title;
+                }
+                return Path.GetFileNameWithoutExtension(Assembly.GetExecutingAssembly().CodeBase);
+            }
         }
     }
 }

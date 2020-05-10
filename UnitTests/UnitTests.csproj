@@ -57,7 +57,12 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
+    <Compile Include="Config\AutofacConfig.cs" />
+    <Compile Include="Config\TestAppBuildConfig.cs" />
+    <Compile Include="Config\TestSystemInit.cs" />
     <Compile Include="DataModels\FileStorageTests.cs" />
+    <Compile Include="EntropyTests\KeyGenTests.cs" />
+    <Compile Include="Library\AutofacModules\SecureMemoMudule.cs" />
     <Compile Include="Misc\LicenseTests.cs" />
     <Compile Include="ObjectModels\PasswordProtectedMemoryStorageTests.cs" />
     <Compile Include="PersistedSettings\TestLoadingSettings.cs" />
@@ -81,7 +86,6 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="app.config" />
     <None Include="UnitTest.pfx" />
   </ItemGroup>
   <ItemGroup>
@@ -91,13 +95,38 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Autofac">
+      <Version>5.1.4</Version>
+    </PackageReference>
+    <PackageReference Include="Autofac.Configuration">
+      <Version>5.1.0</Version>
+    </PackageReference>
+    <PackageReference Include="Autofac.Extensions.DependencyInjection">
+      <Version>6.0.0</Version>
+    </PackageReference>
+    <PackageReference Include="Autofac.Extras.Moq">
+      <Version>5.0.1</Version>
+    </PackageReference>
+    <PackageReference Include="AutofacSerilogIntegration">
+      <Version>2.1.0</Version>
+    </PackageReference>
+    <PackageReference Include="AutoFixture.AutoNSubstitute">
+      <Version>4.11.0</Version>
+    </PackageReference>
     <PackageReference Include="JetBrains.DotMemoryUnit">
       <Version>3.1.20200127.214830</Version>
+    </PackageReference>
+    <PackageReference Include="NSubstitute">
+      <Version>4.2.1</Version>
+    </PackageReference>
+    <PackageReference Include="NSubstitute.Analyzers.CSharp">
+      <Version>1.0.13</Version>
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="ServiceTests\" />
     <Folder Include="TestConfigurationSetup\" />
+    <Folder Include="TestDataOutput\" />
   </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">

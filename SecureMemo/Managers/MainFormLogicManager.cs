@@ -8,7 +8,7 @@ using GeneralToolkitLib.Storage.Memory;
 using SecureMemo.DataModels;
 using SecureMemo.Services;
 
-namespace SecureMemo.FormDeligationManagers
+namespace SecureMemo.Managers
 {
     public class MainFormLogicManager : ManagerBase
     {
