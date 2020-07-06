@@ -20,7 +20,7 @@ namespace SecureMemo
         {
             _fileStorageService = fileStorageService;
             _storageFileSystem = StorageFileSystem.CreateNewFileSystem();
-            InitializeComponent();           
+            InitializeComponent();
             _fileStorageDBPath = ConfigSpecificSettings.GetSettingsFolderPath(false);
             treeViewFolders.DrawMode = TreeViewDrawMode.OwnerDrawAll;
             treeViewFolders.DrawNode += treeViewFolders_DrawNode;
@@ -46,15 +46,15 @@ namespace SecureMemo
             Font nodeFont = Font;
             Image image = FileSystemIcons.Images[0];
             e.Graphics.DrawImage(image, nodeRectangle.X + 5, nodeRectangle.Y + 3);
-            e.Graphics.DrawString(e.Node.Text, nodeFont, new SolidBrush(Color.FromArgb(5, 5, 5)), image.Width + 5 + e.Bounds.X, e.Bounds.Y + e.Bounds.Height/4);
+            e.Graphics.DrawString(e.Node.Text, nodeFont, new SolidBrush(Color.FromArgb(5, 5, 5)), image.Width + 5 + e.Bounds.X, e.Bounds.Y + e.Bounds.Height / 4);
         }
 
         private Rectangle Deflate(Rectangle r, int pixels)
         {
             r.X = r.X + pixels;
             r.Y = r.Y + pixels;
-            r.Height = r.Height - pixels*2;
-            r.Width = r.Width - pixels*2;
+            r.Height = r.Height - pixels * 2;
+            r.Width = r.Width - pixels * 2;
 
             return r;
         }

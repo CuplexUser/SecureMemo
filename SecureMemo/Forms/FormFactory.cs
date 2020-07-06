@@ -9,8 +9,8 @@ namespace SecureMemo.Forms
             Form form = new Form();
             form.Controls.Add(userControl);
             form.StartPosition = FormStartPosition.CenterParent;
-            form.Width = userControl.Width+25;
-            form.Height = userControl.Height+25;
+            form.Width = userControl.Width + 25;
+            form.Height = userControl.Height + 25;
             form.MaximizeBox = false;
             form.MinimizeBox = false;
             form.ShowIcon = false;

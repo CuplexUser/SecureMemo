@@ -25,7 +25,6 @@ namespace SecureMemo
 
         private void btnCheckForUpdates_Click(object sender, EventArgs e)
         {
-    
         }
 
         private void LoadFormData()
@@ -33,10 +32,25 @@ namespace SecureMemo
             lblBuildDate.Text = Settings.Default.BuildDate.ToShortDateString();
             lblLinkEmail.Text = Settings.Default.ContactEmail;
             lblAuthor.Text = AssemblyCopyright;
-            this.Text = "Update";
+            Text = "Update";
             lblCurrentVersion.Text = AssemblyVersion;
             lblTrademark.Text = AssemblyProduct;
+        }
 
+        private void progressWaitControl1_Load(object sender, EventArgs e)
+        {
+        }
+
+        private void PicBoxArt_MouseEnter(object sender, EventArgs e)
+        {
+        }
+
+        private void PicBoxArt_MouseMove(object sender, MouseEventArgs e)
+        {
+        }
+
+        private void PicBoxArt_MouseLeave(object sender, EventArgs e)
+        {
         }
 
         #region Assembly Attribute Accessors
@@ -48,18 +62,16 @@ namespace SecureMemo
                 var attributes = Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyTitleAttribute), false);
                 if (attributes.Length > 0)
                 {
-                    var titleAttribute = (AssemblyTitleAttribute)attributes[0];
+                    var titleAttribute = (AssemblyTitleAttribute) attributes[0];
                     if (titleAttribute.Title != "")
                         return titleAttribute.Title;
                 }
+
                 return Path.GetFileNameWithoutExtension(Assembly.GetExecutingAssembly().CodeBase);
             }
         }
 
-        public string AssemblyVersion
-        {
-            get { return Assembly.GetExecutingAssembly().GetName().Version.ToString(); }
-        }
+        public string AssemblyVersion => Assembly.GetExecutingAssembly().GetName().Version.ToString();
 
         public string AssemblyDescription
         {
@@ -68,7 +80,7 @@ namespace SecureMemo
                 var attributes = Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyDescriptionAttribute), false);
                 if (attributes.Length == 0)
                     return "";
-                return ((AssemblyDescriptionAttribute)attributes[0]).Description;
+                return ((AssemblyDescriptionAttribute) attributes[0]).Description;
             }
         }
 
@@ -79,7 +91,7 @@ namespace SecureMemo
                 var attributes = Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyProductAttribute), false);
                 if (attributes.Length == 0)
                     return "";
-                return ((AssemblyProductAttribute)attributes[0]).Product;
+                return ((AssemblyProductAttribute) attributes[0]).Product;
             }
         }
 
@@ -90,7 +102,7 @@ namespace SecureMemo
                 var attributes = Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyCopyrightAttribute), false);
                 if (attributes.Length == 0)
                     return "";
-                return ((AssemblyCopyrightAttribute)attributes[0]).Copyright;
+                return ((AssemblyCopyrightAttribute) attributes[0]).Copyright;
             }
         }
 
@@ -101,30 +113,10 @@ namespace SecureMemo
                 var attributes = Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyCompanyAttribute), false);
                 if (attributes.Length == 0)
                     return "";
-                return ((AssemblyCompanyAttribute)attributes[0]).Company;
+                return ((AssemblyCompanyAttribute) attributes[0]).Company;
             }
         }
 
         #endregion
-
-        private void progressWaitControl1_Load(object sender, EventArgs e)
-        {
-
-        }
-
-        private void PicBoxArt_MouseEnter(object sender, EventArgs e)
-        {
-
-        }
-
-        private void PicBoxArt_MouseMove(object sender, MouseEventArgs e)
-        {
-
-        }
-
-        private void PicBoxArt_MouseLeave(object sender, EventArgs e)
-        {
-
-        }
     }
 }

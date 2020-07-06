@@ -9,8 +9,8 @@ namespace SecureMemo
 {
     public partial class FormSettings : Form, IDisposable
     {
-        private readonly SecureMemoFontSettings _fontSettings;
         private readonly AppSettingsService _appSettingsService;
+        private readonly SecureMemoFontSettings _fontSettings;
         private Font _selectedFont;
         private bool fontSettingsChanged;
 
@@ -19,6 +19,14 @@ namespace SecureMemo
             _fontSettings = appSettingsService.Settings.FontSettings;
             _appSettingsService = appSettingsService;
             InitializeComponent();
+        }
+
+        public new void Dispose()
+        {
+            _selectedFont.Dispose();
+            _selectedFont = null;
+            base.Dispose();
+            GC.SuppressFinalize(this);
         }
 
         private void frmSettings_Load(object sender, EventArgs e)
@@ -122,14 +130,6 @@ namespace SecureMemo
         private void UpdateBrowseEnableState()
         {
             btnBrowseFolder.Enabled = chkSyncDatabase.Checked;
-        }
-
-        public new void Dispose()
-        {
-            _selectedFont.Dispose();
-            _selectedFont = null;
-            base.Dispose();
-            GC.SuppressFinalize(this);
         }
     }
 }

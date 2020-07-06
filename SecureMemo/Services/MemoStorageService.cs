@@ -15,8 +15,8 @@ namespace SecureMemo.Services
         private const string DatabaseFileName = "MemoDatabase.dat";
         private const string ConfSaltVal = "l73hgwiHLwscWqHQUT7vwJSTX58K0XWZlecm77NbzmqbsF60LOEeftqSdeSvL6cB";
         private const string ConfSaltVal2 = "BxV0CQsjr6f7MbiXTqdpHN4bjyhqUX9Yd79zA2vRZLGPQj0qdTGlTwBFiK7eiFqc";
-        private readonly string _databaseFilePath;
         private readonly AppSettingsService _appSettingsService;
+        private readonly string _databaseFilePath;
 
         public MemoStorageService(AppSettingsService appSettingsService, string databaseFilePath)
         {
@@ -48,7 +48,6 @@ namespace SecureMemo.Services
 
         public TabPageDataCollection LoadTabPageCollection(string password)
         {
-
             TabPageDataCollection tabPageDataCollection = null;
             try
             {
@@ -58,12 +57,12 @@ namespace SecureMemo.Services
 
                 PageDataCollectionManager collectionManager = new PageDataCollectionManager(tabPageDataCollection);
                 FoundDatabaseErrors = !collectionManager.ValidateDataCollectionIntegrity();
-
             }
             catch (Exception ex)
             {
                 Log.Error(ex, "Error loading database");
             }
+
             return tabPageDataCollection;
         }
 
@@ -120,7 +119,7 @@ namespace SecureMemo.Services
                 return null;
 
             var backupFiles = dirInfo.GetFiles("*MemoDatabase.dat");
-            return backupFiles.Select(backupFile => new BackupFileInfo { Name = backupFile.Name, CreatedDate = backupFile.CreationTime, FullName = backupFile.FullName }).ToList();
+            return backupFiles.Select(backupFile => new BackupFileInfo {Name = backupFile.Name, CreatedDate = backupFile.CreationTime, FullName = backupFile.FullName}).ToList();
         }
 
         public void MakeBackup()
@@ -157,9 +156,13 @@ namespace SecureMemo.Services
             try
             {
                 if (!File.Exists(GetFullPathToSharedDatabaseFile()))
+                {
                     restoreSyncDataResult.ErrorCode = RestoreSyncDataErrorCodes.MemoDatabaseFileNotFound;
+                }
                 else if (!File.Exists(GetFullPathToSharedDecryptedConfigFile()))
+                {
                     restoreSyncDataResult.ErrorCode = restoreSyncDataResult.ErrorCode | RestoreSyncDataErrorCodes.ApplicationSettingsFileNotFound;
+                }
                 else
                 {
                     var settings = new StorageManagerSettings(true, Environment.ProcessorCount, true, ConfSaltVal + password + ConfSaltVal2);

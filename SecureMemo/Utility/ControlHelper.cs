@@ -17,28 +17,22 @@ namespace SecureMemo.Utility
                     userControl = control;
                     break;
                 }
+
                 userControl = GetChildControlByName(control, name);
             }
 
             return userControl;
         }
 
-        public static IEnumerable<Control> GetChildControlByType(this Control parent ,Type controlType)
+        public static IEnumerable<Control> GetChildControlByType(this Control parent, Type controlType)
         {
             foreach (Control control in parent.Controls)
-            {
                 if (control.GetType() == controlType)
-                {
                     yield return control;
-                }
                 else
-                {
                     yield return control.GetChildControlByType(controlType).FirstOrDefault();
-                }
-            }
 
             yield return null;
-
         }
     }
 }

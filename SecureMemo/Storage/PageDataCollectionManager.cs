@@ -25,17 +25,11 @@ namespace SecureMemo.Storage
                 if (_dataCollection.ActiveTabIndex == tabIndex)
                 {
                     if (tabIndex == 0)
-                    {
                         _dataCollection.ActiveTabIndex = _dataCollection.TabPageDictionary.Values.Select(x => x.PageIndex).First();
-                    }
                     else if (tabIndex == _dataCollection.TabPageDictionary.Count - 1)
-                    {
                         _dataCollection.ActiveTabIndex = _dataCollection.TabPageDictionary.Values.Select(x => x.PageIndex).Last();
-                    }
                     else
-                    {
                         _dataCollection.ActiveTabIndex = _dataCollection.TabPageDictionary.Values.Select(x => x.PageIndex).Last(x => x < tabIndex);
-                    }
                 }
 
 
@@ -51,14 +45,14 @@ namespace SecureMemo.Storage
 
 
             // Check for duplicate page ids
-            if (pageKeyList.Distinct().Count() != pageKeyList.Count || (pageKeyList.Max() > pageKeyList.Count))
+            if (pageKeyList.Distinct().Count() != pageKeyList.Count || pageKeyList.Max() > pageKeyList.Count)
             {
                 //Rebuild index
                 var tabPageDictionary = new Dictionary<int, TabPageData>();
                 var pageCount = pageKeyList.Distinct().Count();
                 pageKeyList.Sort();
 
-                var tabPageDataList = _dataCollection.TabPageDictionary.Values.Select(x => new TabPageData { PageIndex = x.PageIndex, TabPageLabel = x.TabPageLabel, TabPageText = x.TabPageText, UniqueId = x.UniqueId }).ToList();
+                var tabPageDataList = _dataCollection.TabPageDictionary.Values.Select(x => new TabPageData {PageIndex = x.PageIndex, TabPageLabel = x.TabPageLabel, TabPageText = x.TabPageText, UniqueId = x.UniqueId}).ToList();
 
                 for (int i = 0; i < tabPageDataList.Count; i++)
                 {
@@ -76,6 +70,7 @@ namespace SecureMemo.Storage
 
                     tabPageDictionary.Add(i, pageData);
                 }
+
                 _dataCollection.TabPageDictionary.Clear();
                 _dataCollection.TabPageDictionary = tabPageDictionary;
                 _dataCollection.ActiveTabIndex = 0;

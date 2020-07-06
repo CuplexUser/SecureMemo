@@ -58,6 +58,7 @@ namespace SecureMemo
                     MessageBox.Show(this, ex.Message, "Failed to backup database", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
+
                 MessageBox.Show(this, "Backup restored successfully", "Restore complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
 

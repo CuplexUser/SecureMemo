@@ -41,10 +41,11 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <LangVersion>latest</LangVersion>
+    <CodeAnalysisRuleSet>BasicCorrectnessRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -59,10 +60,10 @@
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <PropertyGroup>
-    <SignManifests>true</SignManifests>
+    <SignManifests>false</SignManifests>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestCertificateThumbprint>9AE05132DCC3A423E94AEC095DD9EBD24AB58848</ManifestCertificateThumbprint>
+    <ManifestCertificateThumbprint>5B6AF55DA613A2D1E5C44F712094D554EC853A55</ManifestCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup>
     <TargetZone>Custom</TargetZone>
@@ -128,6 +129,7 @@
     <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Runtime.Serialization" />
@@ -148,7 +150,10 @@
       <DependentUpon>ApplicationUpdate.cs</DependentUpon>
     </Compile>
     <Compile Include="Configuration\AutofacConfig.cs" />
+    <Compile Include="Delegates\EventDeliagtes.cs" />
     <Compile Include="EventHandlers\TabPageCollectionEventArgs.cs" />
+    <Compile Include="EventHandlers\TabPageCollectionStateChange.cs" />
+    <Compile Include="Library\AutomapperProfile\SecureMemoMapperProfile.cs" />
     <Compile Include="Managers\MainFormLogicManager.cs" />
     <Compile Include="Managers\ManagerBase.cs" />
     <Compile Include="Library\AutofacModules\LoggingModule.cs" />
@@ -157,7 +162,7 @@
     <Compile Include="DataModels\RestoreSyncDataResult.cs" />
     <Compile Include="Forms\FormFactory.cs" />
     <Compile Include="Library\AutofacModules\SecureMemoMudule.cs" />
-    <Compile Include="Library\TabPageCollectionStates.cs" />
+    <Compile Include="EventHandlers\TabPageCollectionStates.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="Services\OTPConfigService.cs" />
     <Compile Include="Storage\PageDataCollectionManager.cs" />
@@ -266,6 +271,7 @@
     </EmbeddedResource>
     <EmbeddedResource Include="ApplicationUpdate.resx">
       <DependentUpon>ApplicationUpdate.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="FormFileManager.resx">
       <DependentUpon>FormFileManager.cs</DependentUpon>
@@ -361,16 +367,22 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Autofac">
-      <Version>5.1.4</Version>
+      <Version>5.2.0</Version>
     </PackageReference>
     <PackageReference Include="Autofac.Extensions.DependencyInjection">
       <Version>6.0.0</Version>
     </PackageReference>
     <PackageReference Include="AutofacSerilogIntegration">
-      <Version>2.1.0</Version>
+      <Version>3.0.0</Version>
+    </PackageReference>
+    <PackageReference Include="AutoMapper">
+      <Version>10.0.0</Version>
     </PackageReference>
     <PackageReference Include="JetBrains.Annotations">
       <Version>2020.1.0</Version>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces">
+      <Version>1.1.1</Version>
     </PackageReference>
     <PackageReference Include="Serilog">
       <Version>2.9.0</Version>
@@ -378,20 +390,11 @@
     <PackageReference Include="Serilog.Enrichers.Thread">
       <Version>3.1.0</Version>
     </PackageReference>
-    <PackageReference Include="Serilog.Sinks.Console">
-      <Version>3.1.1</Version>
-    </PackageReference>
     <PackageReference Include="Serilog.Sinks.EventLog">
       <Version>3.1.0</Version>
     </PackageReference>
     <PackageReference Include="Serilog.Sinks.File">
       <Version>4.1.0</Version>
-    </PackageReference>
-    <PackageReference Include="Serilog.Sinks.Literate">
-      <Version>3.0.0</Version>
-    </PackageReference>
-    <PackageReference Include="Serilog.Sinks.PeriodicBatching">
-      <Version>2.3.0</Version>
     </PackageReference>
     <PackageReference Include="Serilog.Sinks.RollingFile">
       <Version>3.3.0</Version>
@@ -406,6 +409,7 @@
       <Name>GeneralToolkitLib</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using SecureMemo.DataModels;
 
-namespace SecureMemo.Library
+namespace SecureMemo.EventHandlers
 {
     public class TabPageCollectionStates
     {
@@ -10,16 +10,12 @@ namespace SecureMemo.Library
         private TabPageCollectionStateChange _changesMadeInEdit = TabPageCollectionStateChange.None;
         private List<TabEditorOriginalElementState> originalStateList;
 
-        [Flags]
-        public enum TabPageCollectionStateChange : int
+        public TabPageCollectionStates()
         {
-            None = 0x0,
-            PageAdded = 0b1,
-            PageRemoved = 0b10,
-            PageShifted = 0b100,
-            PageShiftedPosition = 0b1000,
-            PageTitleModified = 0b10000,
-        };
+            _changeStack = new Stack<TabPageCollectionStateChange>();
+            originalStateList = new List<TabEditorOriginalElementState>();
+        }
+
 
         private int PageAddedCount { get; set; }
         private int PageRemovedCount { get; set; }
@@ -27,42 +23,27 @@ namespace SecureMemo.Library
 
         public TabPageCollectionStateChange ChangesMadeInEdit => _changesMadeInEdit;
 
-        public TabPageCollectionStates()
-        {
-            _changeStack = new Stack<TabPageCollectionStateChange>();
-            originalStateList = new List<TabEditorOriginalElementState>();
-        }
-
         public void PushChange(TabPageCollectionStateChange item)
         {
             _changeStack.Push(item);
             _changesMadeInEdit = _changesMadeInEdit | item;
 
-            if (item == TabPageCollectionStateChange.PageAdded)
-            {
-                PageAddedCount++;
-            }
+            if (item == TabPageCollectionStateChange.PageAdded) PageAddedCount++;
 
-            if (item == TabPageCollectionStateChange.PageRemoved)
-            {
-                PageRemovedCount++;
-            }
+            if (item == TabPageCollectionStateChange.PageRemoved) PageRemovedCount++;
         }
 
         public void SetInitialState(IEnumerable<TabPageData> tabPageDataCollection)
         {
             originalStateList = new List<TabEditorOriginalElementState>();
-            foreach (TabPageData pageData in tabPageDataCollection)
-            {
-                originalStateList.Add(new TabEditorOriginalElementState(pageData));
-            }
+            foreach (TabPageData pageData in tabPageDataCollection) originalStateList.Add(new TabEditorOriginalElementState(pageData));
         }
 
         public TabPageCollectionStateChange GetChanges(IEnumerable<TabPageData> tabPageDataCollection, out List<TabEditorOriginalElementState> originalStates)
         {
             TabPageCollectionStateChange stateChange = TabPageCollectionStateChange.None;
 
-            while (_changeStack.Count>0)
+            while (_changeStack.Count > 0)
             {
                 TabPageCollectionStateChange change = _changeStack.Pop();
                 stateChange |= change;
@@ -92,16 +73,6 @@ namespace SecureMemo.Library
         public int PageIndex { get; set; }
         public string LabelText { get; set; }
 
-        public bool Equals(TabEditorOriginalElementState x, TabEditorOriginalElementState y)
-        {
-            return x.UniqueID == y.UniqueID;
-        }
-
-        public int GetHashCode(TabEditorOriginalElementState obj)
-        {
-            return obj.UniqueID.GetHashCode();
-        }
-
         public int CompareTo(TabEditorOriginalElementState other)
         {
             if (ReferenceEquals(this, other)) return 0;
@@ -112,6 +83,15 @@ namespace SecureMemo.Library
             if (pageIndexComparison != 0) return pageIndexComparison;
             return string.Compare(LabelText, other.LabelText, StringComparison.Ordinal);
         }
-    }
 
+        public bool Equals(TabEditorOriginalElementState x, TabEditorOriginalElementState y)
+        {
+            return x.UniqueID == y.UniqueID;
+        }
+
+        public int GetHashCode(TabEditorOriginalElementState obj)
+        {
+            return obj.UniqueID.GetHashCode();
+        }
+    }
 }

@@ -1,5 +1,4 @@
 ﻿using System;
-using SecureMemo.Library;
 
 namespace SecureMemo.EventHandlers
 {
@@ -9,31 +8,47 @@ namespace SecureMemo.EventHandlers
 
         private TabPageCollectionEventArgs()
         {
-
         }
 
-        public TabPageCollectionEventArgs(TabPageCollectionStates.TabPageCollectionStateChange activeChange)
+        public TabPageCollectionEventArgs(TabPageCollectionStateChange activeChange)
         {
             ActiveChange = activeChange;
         }
 
         public object Sender { get; set; }
-        public TabPageCollectionStates.TabPageCollectionStateChange ActiveChange { get; set; }
+        public TabPageCollectionStateChange ActiveChange { get; set; }
     }
 
     public class TabPageCollectionEventHandler
     {
-        private TabPageCollectionEventArgs TabEventArgs { get; set; }
         public object Sender;
-        TabPageCollectionEventArgs TabEventsEmpty = TabPageCollectionEventArgs.None;
+        private TabPageCollectionEventArgs TabEventsEmpty = TabPageCollectionEventArgs.None;
 
 
         public TabPageCollectionEventHandler(object sender, TabPageCollectionEventArgs tabEventArgs)
         {
             TabEventArgs = tabEventArgs;
             Sender = sender;
-
-
         }
+
+        private TabPageCollectionEventArgs TabEventArgs { get; set; }
+    }
+
+    public class ActivatePageIndexChangedArgs
+    {
+        public static ActivatePageIndexChangedArgs None = new ActivatePageIndexChangedArgs();
+
+        public ActivatePageIndexChangedArgs(int previousIndex, int currentIndex)
+        {
+            PreviousIndex = previousIndex;
+            CurrentIndex = currentIndex;
+        }
+
+        public ActivatePageIndexChangedArgs()
+        {
+        }
+
+        public int PreviousIndex { get; private set; }
+        public int CurrentIndex { get; private set; }
     }
 }

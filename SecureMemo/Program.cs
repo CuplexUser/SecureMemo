@@ -40,8 +40,8 @@ namespace SecureMemo
                 FormMain frmMain = scope.Resolve<FormMain>();
                 Application.Run(frmMain);
             }
-            ReleaseMutex();
 
+            ReleaseMutex();
         }
 
         private static void RegisterMutex()

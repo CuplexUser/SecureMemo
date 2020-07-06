@@ -5,12 +5,12 @@ using System.Drawing.Drawing2D;
 namespace SecureMemo.Utility
 {
     /// <summary>
-    /// GraphicsExtension
+    ///     GraphicsExtension
     /// </summary>
     internal static class GraphicsExtension
     {
         /// <summary>
-        /// Generates the rounded rectangle.
+        ///     Generates the rounded rectangle.
         /// </summary>
         /// <param name="graphics">The graphics.</param>
         /// <param name="rectangle">The rectangle.</param>
@@ -26,9 +26,9 @@ namespace SecureMemo.Utility
                 return path;
             }
 
-            if (radius >= Math.Min(rectangle.Width, rectangle.Height)/2.0)
+            if (radius >= Math.Min(rectangle.Width, rectangle.Height) / 2.0)
                 return graphics.GenerateCapsule(rectangle);
-            float diameter = radius*2.0F;
+            float diameter = radius * 2.0F;
             var sizeF = new SizeF(diameter, diameter);
             var arc = new RectangleF(rectangle.Location, sizeF);
             path.AddArc(arc, 180, 90);
@@ -43,7 +43,7 @@ namespace SecureMemo.Utility
         }
 
         /// <summary>
-        /// Generates the capsule.
+        ///     Generates the capsule.
         /// </summary>
         /// <param name="graphics">The graphics.</param>
         /// <param name="baseRect">The base rect.</param>
@@ -73,7 +73,10 @@ namespace SecureMemo.Utility
                     arc.Y = baseRect.Bottom - diameter;
                     path.AddArc(arc, 0, 180);
                 }
-                else path.AddEllipse(baseRect);
+                else
+                {
+                    path.AddEllipse(baseRect);
+                }
             }
             catch
             {
@@ -83,12 +86,13 @@ namespace SecureMemo.Utility
             {
                 path.CloseFigure();
             }
+
             return path;
         }
 
         /// <summary>
-        /// Draws a rounded rectangle specified by a pair of coordinates, a width, a height and the radius
-        /// for the arcs that make the rounded edges.
+        ///     Draws a rounded rectangle specified by a pair of coordinates, a width, a height and the radius
+        ///     for the arcs that make the rounded edges.
         /// </summary>
         /// <param name="graphics">The graphics.</param>
         /// <param name="pen">The pen.</param>
@@ -108,8 +112,8 @@ namespace SecureMemo.Utility
         }
 
         /// <summary>
-        /// Draws a rounded rectangle specified by a pair of coordinates, a width, a height and the radius
-        /// for the arcs that make the rounded edges.
+        ///     Draws a rounded rectangle specified by a pair of coordinates, a width, a height and the radius
+        ///     for the arcs that make the rounded edges.
         /// </summary>
         /// <param name="graphics">The graphics.</param>
         /// <param name="pen">The pen.</param>
@@ -124,8 +128,8 @@ namespace SecureMemo.Utility
         }
 
         /// <summary>
-        /// Fills the interior of a rounded rectangle specified by a pair of coordinates, a width, a height
-        /// and the radius for the arcs that make the rounded edges.
+        ///     Fills the interior of a rounded rectangle specified by a pair of coordinates, a width, a height
+        ///     and the radius for the arcs that make the rounded edges.
         /// </summary>
         /// <param name="graphics">The graphics.</param>
         /// <param name="brush">System.Drawing.Brush that determines the characteristics of the fill.</param>
@@ -145,8 +149,8 @@ namespace SecureMemo.Utility
         }
 
         /// <summary>
-        /// Fills the interior of a rounded rectangle specified by a pair of coordinates, a width, a height
-        /// and the radius for the arcs that make the rounded edges.
+        ///     Fills the interior of a rounded rectangle specified by a pair of coordinates, a width, a height
+        ///     and the radius for the arcs that make the rounded edges.
         /// </summary>
         /// <param name="graphics">The graphics.</param>
         /// <param name="brush">System.Drawing.Brush that determines the characteristics of the fill.</param>
@@ -161,7 +165,7 @@ namespace SecureMemo.Utility
         }
 
         /// <summary>
-        /// Fills the rounded rectangle.
+        ///     Fills the rounded rectangle.
         /// </summary>
         /// <param name="graphics">The graphics.</param>
         /// <param name="brush">The brush.</param>

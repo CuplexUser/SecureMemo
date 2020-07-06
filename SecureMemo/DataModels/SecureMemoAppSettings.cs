@@ -39,6 +39,5 @@ namespace SecureMemo.DataModels
 
         [DataMember(Name = "OTPConfigFilename", Order = 11)]
         public string OTPConfigFilename { get; set; }
-
     }
 }

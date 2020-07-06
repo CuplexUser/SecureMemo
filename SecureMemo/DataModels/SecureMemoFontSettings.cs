@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Drawing;
 using System.Runtime.Serialization;
+using System.Threading;
 
 namespace SecureMemo.DataModels
 {
@@ -8,6 +9,13 @@ namespace SecureMemo.DataModels
     [DataContract(Name = "SecureMemoFontSettings")]
     public class SecureMemoFontSettings
     {
+        private Lazy<FontFamily> _fontFamily;
+
+        public SecureMemoFontSettings()
+        {
+            FontFamilyUpdated();
+        }
+
         [DataMember(Name = "FontFamilyName", Order = 1)]
         public string FontFamilyName { get; set; }
 
@@ -20,26 +28,16 @@ namespace SecureMemo.DataModels
         [DataMember(Name = "HasChangedSinceLoaded", Order = 4)]
         public bool HasChangedSinceLoaded { get; set; }
 
-        private Lazy<FontFamily> _fontFamily;
-
-        public FontFamily FontFamily
-        {
-            get { return _fontFamily.Value; }
-        }
+        public FontFamily FontFamily => _fontFamily.Value;
 
         public void FontFamilyUpdated()
         {
-            _fontFamily = new Lazy<FontFamily>(CreateFontFamily, System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
-        }
-
-        public SecureMemoFontSettings()
-        {
-            FontFamilyUpdated();
+            _fontFamily = new Lazy<FontFamily>(CreateFontFamily, LazyThreadSafetyMode.ExecutionAndPublication);
         }
 
         private FontFamily CreateFontFamily()
         {
-            return new FontFamily(this.FontFamilyName);
+            return new FontFamily(FontFamilyName);
         }
     }
 }

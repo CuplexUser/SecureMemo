@@ -101,18 +101,20 @@ namespace SecureMemo.Services
                     {
                         FontSize = Convert.ToSingle(fontConfigFileSection.ConfigItems["FontSize"]),
                         FontFamilyName = fontConfigFileSection.ConfigItems["FontFamilyName"],
-                        Style = (FontStyle)Enum.Parse(typeof(FontStyle), fontConfigFileSection.ConfigItems["Style"])
+                        Style = (FontStyle) Enum.Parse(typeof(FontStyle), fontConfigFileSection.ConfigItems["Style"])
                     };
                     //fontSettings.FontFamily = new Font(fontConfigFileSection.ConfigItems["FontFamily"], fontSettings.FontSize, fontSettings.Style).FontFamily;
 
                     Settings.FontSettings = fontSettings;
                 }
                 else
+                {
                     Settings.FontSettings = _defaultAppSettings.FontSettings;
+                }
             }
             catch (Exception ex)
             {
-                Log.Error(ex,"Failed to load application settings");
+                Log.Error(ex, "Failed to load application settings");
                 throw;
             }
         }
@@ -150,7 +152,7 @@ namespace SecureMemo.Services
             }
             catch (Exception ex)
             {
-                Log.Error(ex,"Error in AppSettings SaveDatabase");
+                Log.Error(ex, "Error in AppSettings SaveDatabase");
             }
         }
     }

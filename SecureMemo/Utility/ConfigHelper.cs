@@ -14,6 +14,22 @@ namespace SecureMemo.Utility
         private const int WinHeight = 300;
         private const bool AllwaysOnTop = false;
 
+        public static string AssemblyTitle
+        {
+            get
+            {
+                var attributes = Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyTitleAttribute), false);
+                if (attributes.Length > 0)
+                {
+                    var titleAttribute = (AssemblyTitleAttribute) attributes[0];
+                    if (titleAttribute.Title != "")
+                        return titleAttribute.Title;
+                }
+
+                return Path.GetFileNameWithoutExtension(Assembly.GetExecutingAssembly().CodeBase);
+            }
+        }
+
         private static string CreateApplicationSalt()
         {
             var randomBytes = new byte[512];
@@ -35,21 +51,6 @@ namespace SecureMemo.Utility
             appSettings.PasswordDerivedString = null;
 
             return appSettings;
-        }
-        
-        public static string AssemblyTitle
-        {
-            get
-            {
-                var attributes = Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyTitleAttribute), false);
-                if (attributes.Length > 0)
-                {
-                    var titleAttribute = (AssemblyTitleAttribute)attributes[0];
-                    if (titleAttribute.Title != "")
-                        return titleAttribute.Title;
-                }
-                return Path.GetFileNameWithoutExtension(Assembly.GetExecutingAssembly().CodeBase);
-            }
         }
     }
 }

@@ -5,8 +5,9 @@ using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using Autofac;
+using Autofac.Core.Lifetime;
 using SecureMemo.DataModels;
-using SecureMemo.Library;
+using SecureMemo.EventHandlers;
 using SecureMemo.Managers;
 
 namespace SecureMemo
@@ -17,7 +18,7 @@ namespace SecureMemo
         private const int MinLabelLength = 1;
         private readonly List<DraggableListItem> _listViewDataSource;
         private readonly ILifetimeScope _scope;
-        private TabPageCollectionStates _tabPageCollectionStates;
+        private readonly TabPageCollectionStates _tabPageCollectionStates;
 
         public FormTabEdit(ILifetimeScope scope)
         {
@@ -25,27 +26,25 @@ namespace SecureMemo
             MainFormLogicManager logicManager = _scope.Resolve<MainFormLogicManager>();
 
             var tabPageDataCollection = logicManager.GetTabPageDataCollection();
-            _listViewDataSource = tabPageDataCollection.Select(x => new DraggableListItem { Index = x.PageIndex, Label = x.TabPageLabel, PageData = x }).ToList();
+            _listViewDataSource = tabPageDataCollection.Select(x => new DraggableListItem {Index = x.PageIndex, Label = x.TabPageLabel, PageData = x}).ToList();
             InitializeComponent();
 
             _tabPageCollectionStates = new TabPageCollectionStates();
             _tabPageCollectionStates.SetInitialState(tabPageDataCollection);
-            
+
 
             scope.CurrentScopeEnding += Scope_CurrentScopeEnding;
         }
 
-        private void Scope_CurrentScopeEnding(object sender, Autofac.Core.Lifetime.LifetimeScopeEndingEventArgs e)
+
+        public bool TabDataChanged { get; private set; }
+
+        private void Scope_CurrentScopeEnding(object sender, LifetimeScopeEndingEventArgs e)
         {
             _listViewDataSource?.ForEach(x => x.PageData = null);
             _listViewDataSource?.Clear();
             GC.Collect();
         }
-
-
-
-
-        public bool TabDataChanged { get; private set; }
 
         //private void VerifyAndCorrectIndexing(TabPageDataCollection tabPageDataCollection)
         //{
@@ -80,8 +79,6 @@ namespace SecureMemo
             // set types of updates and sync the model db in response.
 
 
-
-            
             //int lastIndex = _tabPageDataCollection.TabPageDictionary.Values.Max(x => x.PageIndex);
             //if (_tabPageDataCollection.ActiveTabIndex > lastIndex)
             //    _tabPageDataCollection.ActiveTabIndex = lastIndex;
@@ -106,7 +103,7 @@ namespace SecureMemo
         {
             listViewTabs.Clear();
             foreach (DraggableListItem draggableListItem in _listViewDataSource)
-                listViewTabs.Items.Add(new ListViewItem { Text = draggableListItem.Label, ImageIndex = 0 });
+                listViewTabs.Items.Add(new ListViewItem {Text = draggableListItem.Label, ImageIndex = 0});
         }
 
         private void listViewTabs_AfterLabelEdit(object sender, LabelEditEventArgs e)
@@ -118,6 +115,7 @@ namespace SecureMemo
                 TabDataChanged = true;
                 return;
             }
+
             string textboxMessage = $"Invalid label length. The tab label must be between {MinLabelLength} and {MaxLabelLength} characters long";
             e.CancelEdit = true;
             MessageBox.Show(this, textboxMessage, "Unable to edit label", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
@@ -147,12 +145,9 @@ namespace SecureMemo
             Point p = listViewTabs.PointToClient(MousePosition);
             ListViewItem liteViewItemClosestToDropPosition = GetClosestItemInRelationToDropPosition(listViewTabs, p);
 
-            if (!(e.Data.GetData(typeof(DraggableListItem)) is DraggableListItem dragItem))
-            {
-                return;
-            }
+            if (!(e.Data.GetData(typeof(DraggableListItem)) is DraggableListItem dragItem)) return;
 
-            if ((liteViewItemClosestToDropPosition == null || liteViewItemClosestToDropPosition.Index == dragItem.Index))
+            if (liteViewItemClosestToDropPosition == null || liteViewItemClosestToDropPosition.Index == dragItem.Index)
                 return;
 
             int originalIndex = dragItem.Index;
@@ -233,11 +228,11 @@ namespace SecureMemo
         private void addNewTabToolStripMenuItem_Click(object sender, EventArgs e)
         {
             int newIndex = _listViewDataSource.Max(x => x.Index) + 1;
-            string tabPageLabel = "Page" + (newIndex);
-            var tabPageData = new TabPageData { PageIndex = newIndex, TabPageLabel = tabPageLabel, TabPageText = "" };
+            string tabPageLabel = "Page" + newIndex;
+            var tabPageData = new TabPageData {PageIndex = newIndex, TabPageLabel = tabPageLabel, TabPageText = ""};
             tabPageData.GenerateUniqueIdIfNoneExists();
 
-            _listViewDataSource.Add(new DraggableListItem { Index = newIndex, Label = tabPageLabel, PageData = tabPageData });
+            _listViewDataSource.Add(new DraggableListItem {Index = newIndex, Label = tabPageLabel, PageData = tabPageData});
 
             TabDataChanged = true;
             LoadTabPageCollection();
@@ -283,10 +278,7 @@ namespace SecureMemo
 
             public int Index
             {
-                get
-                {
-                    return _index;
-                }
+                get => _index;
                 set
                 {
                     _index = value;
@@ -296,18 +288,20 @@ namespace SecureMemo
 
             public string Label
             {
-                get
-                {
-                    return _label;
-                }
+                get => _label;
                 set
                 {
                     _label = value;
                     UpdatePageData();
                 }
-
             }
+
             public TabPageData PageData { get; set; }
+
+            public int CompareTo(DraggableListItem other)
+            {
+                return Index.CompareTo(other.Index);
+            }
 
             private void UpdatePageData()
             {
@@ -316,11 +310,6 @@ namespace SecureMemo
                     PageData.TabPageLabel = Label;
                     PageData.PageIndex = Index;
                 }
-            }
-
-            public int CompareTo(DraggableListItem other)
-            {
-                return Index.CompareTo(other.Index);
             }
 
             public override string ToString()

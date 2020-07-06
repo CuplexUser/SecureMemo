@@ -6,8 +6,6 @@ namespace SecureMemo.Services
     {
         private StorageFileSystem _storageFileSystem;
 
-        public StorageFileSystem FileSystem => _storageFileSystem;
-
         public FileStorageService()
         {
             CreateEmptyFileSystem();
@@ -17,6 +15,8 @@ namespace SecureMemo.Services
         {
             _storageFileSystem = storageFileSystem;
         }
+
+        public StorageFileSystem FileSystem => _storageFileSystem;
 
 
         public void Save(string databaseFilePath)

@@ -5,31 +5,40 @@ using GeneralToolkitLib.Converters;
 using GeneralToolkitLib.OTP;
 using SecureMemo.DataModels;
 using Serilog;
+using SHA512 = GeneralToolkitLib.Hashing.SHA512;
 
 namespace SecureMemo.Services
 {
     public class OTPConfigService : ServiceBase, IDisposable
     {
+        private const int SaltByteLength = 64;
         private static OTPConfigService _instance;
         private OTPSettings _otpSettings;
-        private string PasswordHash { get; set; }
-        const int SaltByteLength = 64;
-        public bool Initialized { get; private set; }
-
 
 
         private OTPConfigService()
         {
             _otpSettings = null;
         }
+
+        private string PasswordHash { get; set; }
+        public bool Initialized { get; private set; }
+
+
+        public static OTPConfigService Service => _instance ?? (_instance = new OTPConfigService());
+
+        public void Dispose()
+        {
+            _instance = null;
+        }
+
         /// <summary>
-        ///  Create a new instance of otpSettings
+        ///     Create a new instance of otpSettings
         /// </summary>
         /// <param name="password"></param>
         /// <returns>Password hash</returns>
         public string Create(string password, Authenticator.SecretKeyLength keyLength)
         {
-
             using (var randomNumberGenerator = RandomNumberGenerator.Create())
             {
                 byte[] salt1Bytes = new byte[SaltByteLength];
@@ -98,8 +107,6 @@ namespace SecureMemo.Services
                 _otpSettings = new OTPSettings(null, salt1Bytes, salt2Bytes);
                 if (_otpSettings.Decode(buffer, password))
                     Initialized = true;
-
-
             }
             catch (Exception ex)
             {
@@ -110,8 +117,8 @@ namespace SecureMemo.Services
             {
                 fs?.Close();
             }
-            return true;
 
+            return true;
         }
 
         public bool SaveSettings(string filename, string password)
@@ -154,7 +161,7 @@ namespace SecureMemo.Services
             }
             catch (Exception ex)
             {
-                Log.Error(ex,"Exception in SaveSettings()");
+                Log.Error(ex, "Exception in SaveSettings()");
                 if (File.Exists(filename))
                     File.Delete(filename);
             }
@@ -162,6 +169,7 @@ namespace SecureMemo.Services
             {
                 fs?.Close();
             }
+
             return true;
         }
 
@@ -175,7 +183,7 @@ namespace SecureMemo.Services
             Buffer.BlockCopy(salt2Bytes, 0, hashData, SaltByteLength, salt2Bytes.Length);
             Buffer.BlockCopy(passwordBytes, 0, hashData, SaltByteLength * 2, passwordBytes.Length);
 
-            return GeneralToolkitLib.Hashing.SHA512.GetSHA512HashAsHexString(hashData);
+            return SHA512.GetSHA512HashAsHexString(hashData);
         }
 
         public bool ValidatePassword(string password)
@@ -185,14 +193,6 @@ namespace SecureMemo.Services
 
             byte[] passwordBytes = GeneralConverters.GetByteArrayFromString(password);
             return CreatePasswordHash(_otpSettings.Salt1, _otpSettings.Salt2, passwordBytes) == PasswordHash;
-        }
-
-
-        public static OTPConfigService Service => _instance ?? (_instance = new OTPConfigService());
-
-        public void Dispose()
-        {
-            _instance = null;
         }
     }
 }

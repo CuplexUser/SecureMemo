@@ -1,9 +1,9 @@
 ﻿using System;
 using System.IO;
+using System.Security.Cryptography;
 using GeneralToolkitLib.Converters;
 using GeneralToolkitLib.Encryption;
 using GeneralToolkitLib.Utility.RandomGenerator;
-using SHA512 = System.Security.Cryptography.SHA512;
 
 namespace SecureMemo.DataModels
 {
@@ -53,8 +53,8 @@ namespace SecureMemo.DataModels
             int leftPaddingLength = secureRandom.GetRandomInt(64, 512);
             int rightPaddingLength = secureRandom.GetRandomInt(64, 512);
             byte[] sharedSecretBytes = GeneralConverters.StringToByteArray(SharedSecret);
-            
-            byte[] buffer= BitConverter.GetBytes(leftPaddingLength);
+
+            byte[] buffer = BitConverter.GetBytes(leftPaddingLength);
             msBlock.Write(buffer, 0, buffer.Length);
 
             buffer = BitConverter.GetBytes(rightPaddingLength);
@@ -73,7 +73,7 @@ namespace SecureMemo.DataModels
             byte[] hashBytes = SHA512.Create().ComputeHash(encodeBytes, 0, encodeBytes.Length);
 
             buffer = BitConverter.GetBytes(encodeBytes.Length);
-            msContent.Write(buffer,0, buffer.Length);
+            msContent.Write(buffer, 0, buffer.Length);
 
             msBlock.WriteTo(msContent);
 
@@ -92,7 +92,7 @@ namespace SecureMemo.DataModels
             msEncoded.Read(buffer, 0, 4);
             int encodedBytes = BitConverter.ToInt32(buffer, 0);
 
-            buffer= new byte[encodedBytes];
+            buffer = new byte[encodedBytes];
             msEncoded.Read(buffer, 0, buffer.Length);
             byte[] decodedBytes = EncryptionManager.DecryptData(buffer, password);
 
@@ -110,30 +110,27 @@ namespace SecureMemo.DataModels
             if (!hashCompareResult)
                 return false;
 
-            var msDecoded= new MemoryStream(decodedBytes);
+            var msDecoded = new MemoryStream(decodedBytes);
             buffer = new byte[4];
 
             msDecoded.Read(buffer, 0, buffer.Length);
             int leftPaddingLength = BitConverter.ToInt32(buffer, 0);
-            
+
             msDecoded.Read(buffer, 0, buffer.Length);
             int rightPaddingLength = BitConverter.ToInt32(buffer, 0);
 
             msDecoded.Read(buffer, 0, buffer.Length);
             int totalLength = BitConverter.ToInt32(buffer, 0);
 
-            byte[] decodedDataBlock=new byte[totalLength];
+            byte[] decodedDataBlock = new byte[totalLength];
             msDecoded.Read(decodedDataBlock, 0, decodedDataBlock.Length);
 
-            byte[] sharedSecretBytes= new byte[totalLength- leftPaddingLength- rightPaddingLength];
+            byte[] sharedSecretBytes = new byte[totalLength - leftPaddingLength - rightPaddingLength];
             Buffer.BlockCopy(decodedDataBlock, leftPaddingLength, sharedSecretBytes, 0, sharedSecretBytes.Length);
 
             SharedSecret = GeneralConverters.GetStringFromByteArray(sharedSecretBytes);
 
             return true;
         }
-
-       
-
     }
 }

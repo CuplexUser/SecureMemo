@@ -5,12 +5,12 @@ namespace SecureMemo.UserControls
 {
     public partial class RenameTabPageControl : UserControl
     {
-        public string TabPageName { get; set; }
-        
         public RenameTabPageControl()
         {
             InitializeComponent();
         }
+
+        public string TabPageName { get; set; }
 
         private void RenameTabPageControl_Load(object sender, EventArgs e)
         {

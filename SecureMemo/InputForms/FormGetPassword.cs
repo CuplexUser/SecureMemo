@@ -42,6 +42,7 @@ namespace SecureMemo.InputForms
                 MessageBox.Show(this, "Invalid password");
                 return;
             }
+
             PasswordString = txtPassword.Text;
             PasswordVerified = true;
             DialogResult = DialogResult.OK;

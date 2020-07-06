@@ -12,10 +12,7 @@ namespace SecureMemo.FileStorageModels
             Files = new List<StorageFile>();
         }
 
-        public bool IsRoot
-        {
-            get { return ParentDirectory == null; }
-        }
+        public bool IsRoot => ParentDirectory == null;
 
         public StorageDirectory ParentDirectory { get; set; }
         public List<StorageDirectory> SubDirectories { get; protected set; }

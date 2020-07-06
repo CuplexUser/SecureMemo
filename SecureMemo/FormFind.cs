@@ -50,7 +50,6 @@ namespace SecureMemo
                 e.SuppressKeyPress = true;
                 PerformSearch();
             }
-                
         }
 
         private void PerformSearch()

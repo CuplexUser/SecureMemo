@@ -27,7 +27,6 @@ namespace SecureMemo.InputForms
         private void btnOk_Click(object sender, EventArgs e)
         {
             TryToSetPassword();
-
         }
 
         private bool ValidatePasswords()
@@ -45,30 +44,19 @@ namespace SecureMemo.InputForms
 
         private bool ValidateInputStringAsPassword(string inputStr)
         {
-            if (string.IsNullOrEmpty(inputStr))
-            {
-                return false;
-            }
+            if (string.IsNullOrEmpty(inputStr)) return false;
 
-            return txtPassword1.Text == txtPassword2.Text && (passwordPattern.IsMatch(txtPassword1.Text));
+            return txtPassword1.Text == txtPassword2.Text && passwordPattern.IsMatch(txtPassword1.Text);
         }
 
         private void txtPassword1_Enter(object sender, EventArgs e)
         {
-            if (sender is TextBox txtBox)
-            {
-                txtBox.SelectAll();
-
-            }
+            if (sender is TextBox txtBox) txtBox.SelectAll();
         }
 
         private void txtPassword2_Enter(object sender, EventArgs e)
         {
-            if (sender is TextBox txtBox)
-            {
-                txtBox.SelectAll();
-
-            }
+            if (sender is TextBox txtBox) txtBox.SelectAll();
         }
 
         private void txtPasswordFields_KeyUp(object sender, KeyEventArgs e)
@@ -81,14 +69,15 @@ namespace SecureMemo.InputForms
                     e.Handled = true;
                     e.SuppressKeyPress = true;
                 }
-
             }
         }
 
         private void TryToSetPassword()
         {
             if (!ValidatePasswords())
+            {
                 MessageBox.Show(errorMessage);
+            }
             else
             {
                 VerifiedPassword = txtPassword1.Text;

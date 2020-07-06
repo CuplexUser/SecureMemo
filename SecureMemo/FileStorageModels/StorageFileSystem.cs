@@ -9,7 +9,7 @@ using Serilog;
 
 namespace SecureMemo.FileStorageModels
 {
-    public class StorageFileSystem: IDisposable
+    public class StorageFileSystem : IDisposable
     {
         private const string fsStructureFileName = "FileSystem.smfs";
         private const string validDirectoryNameRegExp = @"^[\w\._-]+$";
@@ -45,6 +45,11 @@ namespace SecureMemo.FileStorageModels
             _rootDirectory = _directories.First(d => d.Id == 0);
             _nextFileId = storageFileSystemContent.NextFileId;
             _nextDirectoryId = storageFileSystemContent.NextDirectoryId;
+        }
+
+        public void Dispose()
+        {
+            throw new NotImplementedException();
         }
 
         public event StorageFileEventHandler FileStructureChanged;
@@ -216,11 +221,6 @@ namespace SecureMemo.FileStorageModels
         {
             var storageFileSystem = new StorageFileSystem();
             return storageFileSystem;
-        }
-
-        public void Dispose()
-        {
-            throw new NotImplementedException();
         }
 
         public class StorageFileDataRange
