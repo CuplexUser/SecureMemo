@@ -1,6 +1,5 @@
 ﻿using Autofac;
-using GeneralToolkitLib.Storage.Memory;
-using GeneralToolkitLib;
+using SecureMemo.Toolkit.Storage.Memory;
 using SecureMemo;
 
 namespace UnitTests.Library.AutofacModules

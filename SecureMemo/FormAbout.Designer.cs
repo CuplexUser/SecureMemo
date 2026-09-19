@@ -1,6 +1,4 @@
-﻿using GeneralToolkitLib.UserControls;
-
-namespace SecureMemo
+﻿namespace SecureMemo
 {
     partial class FormAbout
     {
@@ -32,8 +30,6 @@ namespace SecureMemo
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FormAbout));
             this.panel1 = new System.Windows.Forms.Panel();
-            this.licenseInfoControl1 = new GeneralToolkitLib.UserControls.LicenseInfoControl();
-            //licenseInfoControl1.Load += FormAbout_Load;
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.labelProductName = new System.Windows.Forms.Label();
             this.labelVersion = new System.Windows.Forms.Label();
@@ -49,30 +45,20 @@ namespace SecureMemo
             // 
             this.panel1.Controls.Add(this.btnClose);
             this.panel1.Controls.Add(this.groupBox1);
-            this.panel1.Controls.Add(this.licenseInfoControl1);
             this.panel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel1.Location = new System.Drawing.Point(0, 0);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(534, 424);
+            this.panel1.Size = new System.Drawing.Size(534, 170);
             this.panel1.TabIndex = 0;
-            // 
-            // licenseInfoControl1
-            // 
-            this.licenseInfoControl1.BackColor = System.Drawing.SystemColors.Control;
-            this.licenseInfoControl1.Location = new System.Drawing.Point(12, 12);
-            this.licenseInfoControl1.Name = "licenseInfoControl1";
-            this.licenseInfoControl1.NotRegisteredInfoText = null;
-            this.licenseInfoControl1.Size = new System.Drawing.Size(526, 273);
-            this.licenseInfoControl1.TabIndex = 0;
-            // 
+            //
             // groupBox1
-            // 
+            //
             this.groupBox1.Controls.Add(this.labelProductName);
             this.groupBox1.Controls.Add(this.labelVersion);
             this.groupBox1.Controls.Add(this.labelCopyright);
             this.groupBox1.Controls.Add(this.labelCompanyName);
             this.groupBox1.Controls.Add(this.textBoxDescription);
-            this.groupBox1.Location = new System.Drawing.Point(12, 282);
+            this.groupBox1.Location = new System.Drawing.Point(12, 12);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Size = new System.Drawing.Size(510, 104);
             this.groupBox1.TabIndex = 1;
@@ -145,7 +131,7 @@ namespace SecureMemo
             // btnClose
             // 
             this.btnClose.DialogResult = System.Windows.Forms.DialogResult.OK;
-            this.btnClose.Location = new System.Drawing.Point(447, 392);
+            this.btnClose.Location = new System.Drawing.Point(447, 138);
             this.btnClose.Name = "btnClose";
             this.btnClose.Size = new System.Drawing.Size(75, 23);
             this.btnClose.TabIndex = 29;
@@ -157,7 +143,7 @@ namespace SecureMemo
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(534, 424);
+            this.ClientSize = new System.Drawing.Size(534, 170);
             this.Controls.Add(this.panel1);
             this.Font = new System.Drawing.Font("Segoe UI", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
@@ -179,7 +165,6 @@ namespace SecureMemo
         #endregion
 
         private System.Windows.Forms.Panel panel1;
-        private LicenseInfoControl licenseInfoControl1;
         private System.Windows.Forms.GroupBox groupBox1;
         private System.Windows.Forms.Label labelProductName;
         private System.Windows.Forms.Label labelVersion;

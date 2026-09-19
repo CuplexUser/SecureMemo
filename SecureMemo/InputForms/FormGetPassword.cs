@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Windows.Forms;
-using GeneralToolkitLib.Converters;
+using SecureMemo.Toolkit.Converters;
 
 namespace SecureMemo.InputForms
 {

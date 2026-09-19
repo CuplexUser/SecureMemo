@@ -3,7 +3,7 @@ using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Windows.Forms;
-using GeneralToolkitLib.ConfigHelper;
+using SecureMemo.Toolkit.ConfigHelper;
 using SecureMemo.DataModels;
 using SecureMemo.Utility;
 using Serilog;

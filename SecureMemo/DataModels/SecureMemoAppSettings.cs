@@ -33,11 +33,5 @@ namespace SecureMemo.DataModels
 
         [DataMember(Name = "SyncFolderPath", Order = 9)]
         public string SyncFolderPath { get; set; }
-
-        [DataMember(Name = "OTPEnabled", Order = 10)]
-        public bool OTPEnabled { get; set; }
-
-        [DataMember(Name = "OTPConfigFilename", Order = 11)]
-        public string OTPConfigFilename { get; set; }
     }
 }

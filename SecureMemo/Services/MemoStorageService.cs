@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using GeneralToolkitLib.Storage;
-using GeneralToolkitLib.Storage.Models;
+using SecureMemo.Toolkit.Storage;
+using SecureMemo.Toolkit.Storage.Models;
 using SecureMemo.DataModels;
 using SecureMemo.Storage;
 using Serilog;
@@ -97,7 +97,7 @@ namespace SecureMemo.Services
                 if (File.Exists(encodedConfigFilePath))
                     File.Delete(encodedConfigFilePath);
 
-                settings.Password = ConfSaltVal + settings.Password + ConfSaltVal2;
+                settings.SetPassword(ConfSaltVal + settings.GetPassword() + ConfSaltVal2);
                 File.Copy(GetFullPathToDatabaseFile(), encodedConfigFilePath);
                 success = storageManager.SerializeObjectToFile(_appSettingsService.Settings, GetFullPathToSharedDecryptedConfigFile(), null);
             }

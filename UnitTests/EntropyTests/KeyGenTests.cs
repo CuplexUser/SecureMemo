@@ -54,7 +54,7 @@ namespace UnitTests.EntropyTests
                         state.LengthToGenerate = dataPerThread;
                         dataLeftToGenerate -= state.LengthToGenerate;
                         Task t = Task.Factory.StartNew(GenerateRandomData, state, cancelToken);
-                        t.ContinueWith(async (antecedent) =>
+                        Task writeTask = t.ContinueWith(async (antecedent) =>
                         {
                             if (antecedent.AsyncState is AsyncState completedState && dataWritten <= outputSize)
                             {
@@ -63,8 +63,8 @@ namespace UnitTests.EntropyTests
                                 await streamWriter.FlushAsync().ConfigureAwait(true);
                                 await fs.FlushAsync(cancelToken);
                             }
-                        }, cancelToken);
-                        tasks.Add(t);
+                        }, cancelToken).Unwrap();
+                        tasks.Add(writeTask);
                     }
 
                     Task.WaitAny(tasks.ToArray(), cancelToken);
@@ -134,7 +134,7 @@ namespace UnitTests.EntropyTests
                         state.LengthToGenerate = dataPerThread;
                         dataLeftToGenerate -= state.LengthToGenerate;
                         Task t = Task.Factory.StartNew(GenerateRandomBinaryData, state, cancelToken);
-                        t.ContinueWith(async (antecedent) =>
+                        Task writeTask = t.ContinueWith(async (antecedent) =>
                         {
                             if (antecedent.AsyncState is AsyncState completedState && dataWritten <= outputSize)
                             {
@@ -142,8 +142,8 @@ namespace UnitTests.EntropyTests
                                 await fs.FlushAsync(cancelToken);
                                 dataWritten += completedState.GeneratedData.Length;
                             }
-                        }, cancelToken);
-                        tasks.Add(t);
+                        }, cancelToken).Unwrap();
+                        tasks.Add(writeTask);
                     }
 
                     Task.WaitAny(tasks.ToArray(), cancelToken);

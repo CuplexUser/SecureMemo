@@ -1,5 +1,5 @@
 ﻿using Autofac;
-using GeneralToolkitLib.Storage.Memory;
+using SecureMemo.Toolkit.Storage.Memory;
 
 namespace SecureMemo.Library.AutofacModules
 {

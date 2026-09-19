@@ -3,9 +3,9 @@ using System.IO;
 using System.Reflection;
 using Autofac;
 using AutoMapper;
-using GeneralToolkitLib.ConfigHelper;
-using GeneralToolkitLib.Configuration;
-using GeneralToolkitLib.Storage.Memory;
+using SecureMemo.Toolkit.ConfigHelper;
+using SecureMemo.Toolkit.Configuration;
+using SecureMemo.Toolkit.Storage.Memory;
 using SecureMemo.Managers;
 using SecureMemo.Services;
 using SecureMemo.TextSearchModels;
@@ -38,14 +38,10 @@ namespace SecureMemo.Configuration
             builder.RegisterInstance(passwordStorageMgr).As<PasswordStorage>().SingleInstance();
 
 
-            var generalToolKitAssembly = AssemblyHelper.GetAssembly();
-            if (generalToolKitAssembly != null) builder.RegisterAssemblyModules(generalToolKitAssembly);
-
             builder.RegisterAssemblyModules(Assembly.GetExecutingAssembly());
 
 
             builder.RegisterType<MainFormLogicManager>().AsSelf().SingleInstance();
-            builder.RegisterType<ServiceBase>().AsImplementedInterfaces().InstancePerLifetimeScope();
 
             // Register instantiation of Search engine
             builder.RegisterType<TabSearchEngine>().AsSelf().InstancePerLifetimeScope();

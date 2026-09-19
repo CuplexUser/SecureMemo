@@ -6,10 +6,8 @@ using System.Reflection;
 using System.Security;
 using System.Windows.Forms;
 using Autofac;
-using GeneralToolkitLib.Converters;
-using GeneralToolkitLib.Encryption.License;
-using GeneralToolkitLib.Encryption.License.StaticData;
-using GeneralToolkitLib.Storage.Memory;
+using SecureMemo.Toolkit.Converters;
+using SecureMemo.Toolkit.Storage.Memory;
 using SecureMemo.DataModels;
 using SecureMemo.Delegates;
 using SecureMemo.EventHandlers;
@@ -30,10 +28,8 @@ namespace SecureMemo
     public partial class FormMain : Form
     {
         private const string PwdKey = "SecureMemo";
-        private const string LicenseFilename = "licence.txt";
         private readonly ApplicationState _applicationState;
         private readonly AppSettingsService _appSettingsService;
-        private readonly LicenseService _licenseService;
         private readonly MainFormLogicManager _logicManager;
         private readonly PasswordStorage _passwordStorage;
         private readonly ILifetimeScope _scope;
@@ -57,7 +53,6 @@ namespace SecureMemo
 
             _applicationState = new ApplicationState();
 
-            _licenseService = LicenseService.Instance;
             InitializeComponent();
 
             logicManager.OnTabPageCollectionChange += LogicManager_OnTabPageCollectionChange;
@@ -89,8 +84,6 @@ namespace SecureMemo
                 InitializeTabControls();
                 _appSettingsService.LoadSettings();
                 InitFormSettings();
-                LoadLicenseFile();
-                _licenseService.Init(SerialNumbersSettings.ProtectedApp.SecureMemo);
 
                 Text = ConfigHelper.AssemblyTitle + " - v" + Assembly.GetExecutingAssembly().GetName().Version;
                 UpdateApplicationState();
@@ -639,19 +632,6 @@ namespace SecureMemo
         {
             if (!_applicationState.DatabaseLoaded || !_applicationState.TabTextDataChanged) return true;
             return MessageBox.Show(this, "Are you sure you want to exit without saving?", "Exit without save?", MessageBoxButtons.OKCancel, MessageBoxIcon.Question) == DialogResult.OK;
-        }
-
-        private void LoadLicenseFile()
-        {
-            try
-            {
-                if (File.Exists(LicenseFilename))
-                    _licenseService.LoadLicenseFromFile(LicenseFilename);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(this, ex.Message, Resources.FormMain__ErrorText);
-            }
         }
 
         private Point GetCenterLocationForChildForm(Control childForm)

@@ -5,7 +5,7 @@ using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using Autofac;
-using GeneralToolkitLib.Storage.Memory;
+using SecureMemo.Toolkit.Storage.Memory;
 using SecureMemo.DataModels;
 using SecureMemo.Delegates;
 using SecureMemo.EventHandlers;

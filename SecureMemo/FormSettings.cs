@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Drawing;
 using System.Windows.Forms;
-using GeneralToolkitLib.Utility;
+using SecureMemo.Toolkit.Utility;
 using SecureMemo.DataModels;
 using SecureMemo.Services;
 

@@ -2,9 +2,8 @@
 using System.IO;
 using System.Security;
 using System.Text;
-using GeneralToolkitLib.Converters;
-using GeneralToolkitLib.Hashing;
-using GeneralToolkitLib.Utility.RandomGenerator;
+using SecureMemo.Toolkit.Hashing;
+using SecureMemo.Toolkit.Utility.RandomGenerator;
 
 namespace SecureMemo.Managers
 {
@@ -20,7 +19,7 @@ namespace SecureMemo.Managers
             byte[] buffer = secureRnd.GetRandomData(secureRnd.GetRandomInt(29, 221));
             ms.Write(buffer, 0, buffer.Length);
 
-            buffer = GeneralConverters.ConvertStringToByteArray(Encoding.ASCII, originalLookupIndex);
+            buffer = Encoding.ASCII.GetBytes(originalLookupIndex);
             ms.Write(buffer, 0, buffer.Length);
 
             buffer = secureRnd.GetRandomData(secureRnd.GetRandomInt(29, 221));
@@ -55,7 +54,7 @@ namespace SecureMemo.Managers
             string tmp = secureRnd.GetPasswordString(secureRnd.GetRandomInt(29, 221)) + originalLookupIndex + secureRnd.GetPasswordString(secureRnd.GetRandomInt(29, 221));
 
             // ReSharper disable once SuggestVarOrType_Elsewhere
-            byte[] buffer = GeneralConverters.ConvertStringToByteArray(Encoding.ASCII, tmp);
+            byte[] buffer = Encoding.ASCII.GetBytes(tmp);
             for (int i = 0; i < secureRnd.GetRandomInt(83, 101); i++)
             {
                 // Tick count being tracked by .Net using 32 bit integers for some strange reason when the WIN_API CALL uses ulong and thus not overflowing in 24 days and 20 hours.

@@ -5,8 +5,6 @@ VisualStudioVersion = 16.0.29306.81
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SecureMemo", "SecureMemo\SecureMemo.csproj", "{C4F02E9B-15E2-4EA3-A1B8-5B02D0ED5931}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GeneralToolkitLib", "..\GeneralToolkitLib\GeneralToolkitLib\GeneralToolkitLib.csproj", "{18B7C1DC-CB9B-4B4F-B3BB-40E79B277DD9}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTests", "UnitTests\UnitTests.csproj", "{50AA8BF5-4C33-418C-ADE8-BD79B4953A37}"
 EndProject
 Global
@@ -25,14 +23,6 @@ Global
 		{C4F02E9B-15E2-4EA3-A1B8-5B02D0ED5931}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C4F02E9B-15E2-4EA3-A1B8-5B02D0ED5931}.Release|x64.ActiveCfg = Release|x64
 		{C4F02E9B-15E2-4EA3-A1B8-5B02D0ED5931}.Release|x64.Build.0 = Release|x64
-		{18B7C1DC-CB9B-4B4F-B3BB-40E79B277DD9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{18B7C1DC-CB9B-4B4F-B3BB-40E79B277DD9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{18B7C1DC-CB9B-4B4F-B3BB-40E79B277DD9}.Debug|x64.ActiveCfg = Debug|x64
-		{18B7C1DC-CB9B-4B4F-B3BB-40E79B277DD9}.Debug|x64.Build.0 = Debug|x64
-		{18B7C1DC-CB9B-4B4F-B3BB-40E79B277DD9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{18B7C1DC-CB9B-4B4F-B3BB-40E79B277DD9}.Release|Any CPU.Build.0 = Release|Any CPU
-		{18B7C1DC-CB9B-4B4F-B3BB-40E79B277DD9}.Release|x64.ActiveCfg = Release|x64
-		{18B7C1DC-CB9B-4B4F-B3BB-40E79B277DD9}.Release|x64.Build.0 = Release|x64
 		{50AA8BF5-4C33-418C-ADE8-BD79B4953A37}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{50AA8BF5-4C33-418C-ADE8-BD79B4953A37}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{50AA8BF5-4C33-418C-ADE8-BD79B4953A37}.Debug|x64.ActiveCfg = Debug|Any CPU

@@ -2,9 +2,6 @@
 using System.IO;
 using System.Reflection;
 using System.Windows.Forms;
-using GeneralToolkitLib.Encryption.License;
-using GeneralToolkitLib.Encryption.License.DataModels;
-using GeneralToolkitLib.UserControls;
 
 namespace SecureMemo
 {
@@ -23,26 +20,6 @@ namespace SecureMemo
             labelCopyright.Text = AssemblyCopyright;
             labelCompanyName.Text = AssemblyCompany;
             textBoxDescription.Text = AssemblyDescription;
-
-            var licenseData = new LicenseDataModel {RegistrationData = new RegistrationDataModel {ComputerId = SysInfoManager.GetComputerId()}};
-            licenseInfoControl1.InitLicenseData(licenseData);
-            licenseInfoControl1.CreateRequest = ShowLicenseRequestForm;
-        }
-
-        public void ShowLicenseRequestForm()
-        {
-            CreateLicenseRequestControl userControl = new CreateLicenseRequestControl();
-            Form containerForm = new Form();
-            containerForm.Controls.Add(userControl);
-            containerForm.StartPosition = FormStartPosition.CenterScreen;
-            containerForm.AutoSizeMode = AutoSizeMode.GrowOnly;
-            containerForm.AutoSize = true;
-            containerForm.FormBorderStyle = FormBorderStyle.FixedSingle;
-            containerForm.Text = "Registration form";
-            containerForm.ShowIcon = false;
-            containerForm.ShowInTaskbar = false;
-            containerForm.Update();
-            containerForm.ShowDialog(this);
         }
 
         private void BtnClose_Click(object sender, EventArgs e)

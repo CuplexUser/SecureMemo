@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.Serialization.Formatters.Binary;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using SecureMemo.FileStorageEvents;
 using Serilog;
@@ -171,8 +171,7 @@ namespace SecureMemo.FileStorageModels
             FileStream fs = null;
             try
             {
-                fs = File.OpenWrite(directoryPath + "\\" + fsStructureFileName);
-                var binaryFormatter = new BinaryFormatter();
+                fs = File.Create(directoryPath + "\\" + fsStructureFileName);
                 var fileSystemContent = new StorageFileContent
                 {
                     Directories = _directories,
@@ -183,7 +182,7 @@ namespace SecureMemo.FileStorageModels
                     NextFileId = _nextFileId
                 };
 
-                binaryFormatter.Serialize(fs, fileSystemContent);
+                JsonSerializer.Serialize(fs, fileSystemContent);
                 fs.Flush();
             }
             catch (Exception ex)
@@ -202,8 +201,7 @@ namespace SecureMemo.FileStorageModels
             try
             {
                 fs = File.OpenRead(directoryPath + "\\" + fsStructureFileName);
-                var binaryFormatter = new BinaryFormatter();
-                var storageFileSystemContent = binaryFormatter.Deserialize(fs) as StorageFileContent;
+                var storageFileSystemContent = JsonSerializer.Deserialize<StorageFileContent>(fs);
                 return new StorageFileSystem(storageFileSystemContent);
             }
             catch (Exception ex)
