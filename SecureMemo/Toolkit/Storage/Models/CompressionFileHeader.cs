@@ -82,7 +82,7 @@ namespace SecureMemo.Toolkit.Storage.Models
                 return false;
 
             byte[] inputHeaderBytes = new byte[HeaderIdentifierBytes.Length];
-            inputStream.Read(inputHeaderBytes, 0, inputHeaderBytes.Length);
+            inputStream.ReadExactly(inputHeaderBytes, 0, inputHeaderBytes.Length);
             inputStream.Position = 0;
 
             return HeaderIdentifierBytes.SequenceEqual(inputHeaderBytes);
@@ -98,19 +98,19 @@ namespace SecureMemo.Toolkit.Storage.Models
             byte[] buffer = new byte[8];
 
             // Read file header size
-            inputStream.Read(buffer, 0, 4);
+            inputStream.ReadExactly(buffer, 0, 4);
             int fileHeaderSize = BitConverter.ToInt32(buffer, 0);
 
             // Read decompressed file size
-            inputStream.Read(buffer, 0, 8);
+            inputStream.ReadExactly(buffer, 0, 8);
             long decompressedFileSize = BitConverter.ToInt64(buffer, 0);
 
             // Read block size
-            inputStream.Read(buffer, 0, 4);
+            inputStream.ReadExactly(buffer, 0, 4);
             int blockSize = BitConverter.ToInt32(buffer, 0);
 
             // Read block count
-            inputStream.Read(buffer, 0, 4);
+            inputStream.ReadExactly(buffer, 0, 4);
             int numberOfBlocks = BitConverter.ToInt32(buffer, 0);
 
             CompressionFileHeader compressionFileHeader = new CompressionFileHeader(decompressedFileSize, blockSize) {NumberOfBlocks = numberOfBlocks};
@@ -123,19 +123,19 @@ namespace SecureMemo.Toolkit.Storage.Models
                 CompressionBlock compressionBlock = new CompressionBlock();
 
                 // Read start position
-                inputStream.Read(buffer, 0, 8);
+                inputStream.ReadExactly(buffer, 0, 8);
                 compressionBlock.StartPosition = BitConverter.ToInt64(buffer, 0);
 
                 // Read end position
-                inputStream.Read(buffer, 0, 8);
+                inputStream.ReadExactly(buffer, 0, 8);
                 compressionBlock.EndPosition = BitConverter.ToInt64(buffer, 0);
 
                 // Read decompressed block size
-                inputStream.Read(buffer, 0, 4);
+                inputStream.ReadExactly(buffer, 0, 4);
                 compressionBlock.UncompressedBlockSize = BitConverter.ToInt32(buffer, 0);
 
                 // Read compressed block size
-                inputStream.Read(buffer, 0, 4);
+                inputStream.ReadExactly(buffer, 0, 4);
                 compressionBlock.CompressedBlockSize = BitConverter.ToInt32(buffer, 0);
 
                 compressionFileHeader.CompressedDataBlocks.Add(compressionBlock);

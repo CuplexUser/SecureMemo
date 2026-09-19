@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using Serilog;
 
@@ -47,15 +48,19 @@ namespace SecureMemo.Toolkit.Encryption
 
                 using (Aes aesAlg = Aes.Create())
                 {
-                    var rfc2898DeriveBytes = new Rfc2898DeriveBytes(passwordString, SALT, 1000);
                     Debug.Assert(aesAlg != null, nameof(aesAlg) + " != null");
                     aesAlg.BlockSize = 128;
                     aesAlg.KeySize = 256;
                     aesAlg.Padding = PaddingMode.PKCS7;
                     aesAlg.Mode = CipherMode.CBC;
 
-                    aesAlg.Key = rfc2898DeriveBytes.GetBytes(32);
-                    aesAlg.IV = rfc2898DeriveBytes.GetBytes(16);
+                    // Derived in one 48-byte pull (key = first 32 bytes, IV = next 16) to exactly
+                    // reproduce the old stateful GetBytes(32)+GetBytes(16) sequence from a single
+                    // Rfc2898DeriveBytes instance; SHA1 matches that constructor's implicit
+                    // default. Verified byte-for-byte identical to the old API before switching.
+                    byte[] keyMaterial = Rfc2898DeriveBytes.Pbkdf2(Encoding.UTF8.GetBytes(passwordString), SALT, 1000, HashAlgorithmName.SHA1, 48);
+                    aesAlg.Key = keyMaterial[..32];
+                    aesAlg.IV = keyMaterial[32..48];
 
                     // Create a encrypt transform
                     ICryptoTransform encrypt = aesAlg.CreateEncryptor(aesAlg.Key, aesAlg.IV);
@@ -124,14 +129,18 @@ namespace SecureMemo.Toolkit.Encryption
                 // Create an AesCryptoServiceProvider object
                 using (Aes aesAlg = Aes.Create())
                 {
-                    var rfc2898DeriveBytes = new Rfc2898DeriveBytes(passwordString, SALT, 1000);
                     aesAlg.BlockSize = 128;
                     aesAlg.KeySize = 256;
                     aesAlg.Padding = PaddingMode.PKCS7;
                     aesAlg.Mode = CipherMode.CBC;
 
-                    aesAlg.Key = rfc2898DeriveBytes.GetBytes(32);
-                    aesAlg.IV = rfc2898DeriveBytes.GetBytes(16);
+                    // Derived in one 48-byte pull (key = first 32 bytes, IV = next 16) to exactly
+                    // reproduce the old stateful GetBytes(32)+GetBytes(16) sequence from a single
+                    // Rfc2898DeriveBytes instance; SHA1 matches that constructor's implicit
+                    // default. Verified byte-for-byte identical to the old API before switching.
+                    byte[] keyMaterial = Rfc2898DeriveBytes.Pbkdf2(Encoding.UTF8.GetBytes(passwordString), SALT, 1000, HashAlgorithmName.SHA1, 48);
+                    aesAlg.Key = keyMaterial[..32];
+                    aesAlg.IV = keyMaterial[32..48];
 
                     // Create a decrytor to perform the stream transform.
                     ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);

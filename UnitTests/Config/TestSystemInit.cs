@@ -13,8 +13,6 @@ namespace UnitTests.Config
     public class TestSystemInit
     {
         public static ILifetimeScope Scope { get; private set; }
-        private static string TestDataPath = "";
-
 
         public static void SetupRuntimeEnvironment()
         {

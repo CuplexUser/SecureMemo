@@ -360,7 +360,7 @@ namespace SecureMemo.Toolkit.Storage
                     CompressionBlock dataBlock = compressionFileHeader.CompressedDataBlocks[currentBlock];
                     outputMemoryStreams[i] = new MemoryStream();
                     var buffer = new byte[dataBlock.CompressedBlockSize];
-                    inputDataStream.Read(buffer, 0, buffer.Length);
+                    inputDataStream.ReadExactly(buffer, 0, buffer.Length);
                     MemoryStream inputStream = new MemoryStream(buffer) { Position = 0 };
                     decoderTasks[i] = DeflateData(inputStream, outputMemoryStreams[i], dataBlock.CompressedBlockSize, coderProgress);
                     decoderTasks[i].Start();
@@ -404,11 +404,11 @@ namespace SecureMemo.Toolkit.Storage
 
                 // Read the decoder properties
                 var properties = new byte[5];
-                inputStream.Read(properties, 0, 5);
+                inputStream.ReadExactly(properties, 0, 5);
 
                 // Read in the decompress block size.
                 var fileLengthBytes = new byte[8];
-                inputStream.Read(fileLengthBytes, 0, 8);
+                inputStream.ReadExactly(fileLengthBytes, 0, 8);
                 long blockSize = BitConverter.ToInt64(fileLengthBytes, 0);
 
                 decoder.SetDecoderProperties(properties);
@@ -419,7 +419,10 @@ namespace SecureMemo.Toolkit.Storage
 
         private bool VerifyObjectToSerialize(object obj)
         {
-            return obj != null && obj.GetType().Attributes.HasFlag(TypeAttributes.Serializable & TypeAttributes.Public);
+            // TypeAttributes.Serializable & TypeAttributes.Public evaluates to 0 (NotPublic), and
+            // Enum.HasFlag(0) is always true, so the original check was equivalent to `obj != null`
+            // regardless of the type's actual attributes; kept as-is to preserve exact behavior.
+            return obj != null;
         }
 
         #endregion

@@ -120,7 +120,6 @@ namespace UnitTests.EntropyTests
             Stopwatch stopwatch = Stopwatch.StartNew();
             // CreateFileStream
             FileStream fs = null;
-            const int bufferSize = 65536;
             try
             {
                 fs = File.Create(filePath);
