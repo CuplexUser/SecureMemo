@@ -65,7 +65,7 @@ namespace SecureMemo
         {
             const TabPageCollectionStateChange state = TabPageCollectionStateChange.NewDatabaseCreated | TabPageCollectionStateChange.PageShiftedPosition | TabPageCollectionStateChange.PageAdded | TabPageCollectionStateChange.PageRemoved;
 
-            if ((eventArgs.ActiveChange | state) > 0)
+            if ((eventArgs.ActiveChange & state) > 0)
             {
                 Invoke(new EventDeliagtes.InvokeUiThreadUpdate(InitializeTabControls));
                 Invoke(new EventDeliagtes.InvokeUiThreadUpdate(UpdateApplicationState));
@@ -108,7 +108,7 @@ namespace SecureMemo
             if (_applicationState.Initializing)
                 return;
 
-            _logicManager.UpdateTabPageLabel(tabControlNotepad.SelectedIndex, GetTextInTabControl(tabControlNotepad.SelectedIndex));
+            _logicManager.SetTabPageText(tabControlNotepad.SelectedIndex, GetTextInTabControl(tabControlNotepad.SelectedIndex));
             _applicationState.TabTextDataChanged = true;
             UpdateApplicationState();
         }
