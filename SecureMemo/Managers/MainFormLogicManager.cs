@@ -463,11 +463,15 @@ namespace SecureMemo.Managers
         public bool OpenDatabase()
         {
             string password = _passwordStorage.Get("SecureMemo");
+            TabPageDataCollection tabPageDataCollection;
             lock (_lockObject)
             {
-                var tabPageDataCollection = _memoStorageService.LoadTabPageCollection(password);
+                tabPageDataCollection = _memoStorageService.LoadTabPageCollection(password);
                 if (tabPageDataCollection?.TabPageDictionary == null) return false;
             }
+
+            _tabPageDataCollection = tabPageDataCollection;
+            OnTabPageCollectionChange?.Invoke(this, new TabPageCollectionEventArgs(TabPageCollectionStateChange.NewDatabaseCreated));
 
             if (!_memoStorageService.FoundDatabaseErrors) return true;
 
