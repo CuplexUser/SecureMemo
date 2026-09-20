@@ -59,6 +59,9 @@ namespace SecureMemo.FileStorageModels
         {
             var root = new StorageDirectory {Id = 0, ParentId = 0, CreateDate = DateTime.Now, DirectoryName = "FSRootDir"};
             _directoryIdSet.Add(_nextDirectoryId++);
+            // Root must be in _directories too, not just tracked by id, or it silently drops out of
+            // SaveToFile/LoadFileSystem and reload always fails to find it.
+            _directories.Add(root);
             return root;
         }
 
