@@ -3,6 +3,7 @@ using System.Reflection;
 using Autofac;
 using SecureMemo.Toolkit.ConfigHelper;
 using SecureMemo.Toolkit.Storage.Memory;
+using SecureMemo.DataModels;
 using SecureMemo.Managers;
 using SecureMemo.Services;
 using SecureMemo.TextSearchModels;
@@ -35,6 +36,10 @@ namespace UnitTests.Config
 
 
             builder.RegisterType<MainFormLogicManager>().AsSelf().SingleInstance();
+
+            builder.Register(context => context.Resolve<MainFormLogicManager>().GetActiveTabPageDataCollection())
+                .As<TabPageDataCollection>()
+                .InstancePerDependency();
 
             // Register instantiation of Search engine
             builder.RegisterType<TabSearchEngine>().AsSelf().InstancePerLifetimeScope();

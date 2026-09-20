@@ -91,6 +91,17 @@ namespace SecureMemo.FileStorageModels
             if (storageDirectory == null)
                 return false;
 
+            // Without cascading, child directories/files would stay in _directories/_files forever,
+            // orphaned and invisible in the UI but never actually removed from the persisted file.
+            foreach (StorageDirectory childDirectory in GetDirectories(directoryId))
+                DeleteDirectory(childDirectory.Id);
+
+            foreach (StorageFile file in GetFiles(directoryId))
+            {
+                _files.Remove(file);
+                _fileIdSet.Remove(file.Id);
+            }
+
             _directories.Remove(storageDirectory);
             _directoryIdSet.Remove(storageDirectory.Id);
 
@@ -147,11 +158,6 @@ namespace SecureMemo.FileStorageModels
         public StorageDirectory GetRootDirectory()
         {
             return _rootDirectory;
-        }
-
-        public StorageDirectory GetSelectedDir(string directoryName)
-        {
-            return null;
         }
 
         public StorageDirectory GetDirectory(int directoryId)

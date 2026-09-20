@@ -147,7 +147,7 @@ namespace SecureMemo
             if (selectedNode == null)
                 baseDirectory = _storageFileSystem.GetRootDirectory();
             else
-                baseDirectory = _storageFileSystem.GetSelectedDir(treeViewFolders.SelectedNode.Name);
+                baseDirectory = _storageFileSystem.GetDirectory(int.Parse(selectedNode.Name));
 
             _storageFileSystem.CreateDirectory(baseDirectory, "New");
         }

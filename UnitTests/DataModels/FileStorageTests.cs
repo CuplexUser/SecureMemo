@@ -54,5 +54,28 @@ namespace UnitTests.DataModels
 
             Assert.IsNull(loaded);
         }
+
+        [TestMethod]
+        public void DeleteDirectory_RemovesChildDirectoriesAndFiles()
+        {
+            // Regression test: DeleteDirectory used to remove only the directory itself, silently
+            // orphaning its child directories/files (never visible again, but never freed either).
+            StorageFileSystem storageFileSystem = StorageFileSystem.CreateNewFileSystem();
+            StorageDirectory root = storageFileSystem.GetRootDirectory();
+            int parentId = storageFileSystem.CreateDirectory(root, "Parent");
+            StorageDirectory parent = storageFileSystem.GetDirectory(parentId);
+            int childId = storageFileSystem.CreateDirectory(parent, "Child");
+            StorageDirectory child = storageFileSystem.GetDirectory(childId);
+            storageFileSystem.CreateFile(parent, "in-parent.txt");
+            storageFileSystem.CreateFile(child, "in-child.txt");
+
+            bool deleted = storageFileSystem.DeleteDirectory(parentId);
+
+            Assert.IsTrue(deleted);
+            Assert.IsNull(storageFileSystem.GetDirectory(parentId));
+            Assert.IsNull(storageFileSystem.GetDirectory(childId));
+            Assert.AreEqual(0, storageFileSystem.GetFiles(parentId).Count);
+            Assert.AreEqual(0, storageFileSystem.GetFiles(childId).Count);
+        }
     }
 }

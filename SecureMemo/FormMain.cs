@@ -261,6 +261,8 @@ namespace SecureMemo
             {
                 MessageBox.Show("Database and app settings restored from sync folder.", "Restore complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 _applicationState.DatabaseExists = true;
+                _applicationState.DatabaseLoaded = true;
+                InitializeTabControls();
                 UpdateApplicationState();
             }
             else
@@ -714,23 +716,9 @@ namespace SecureMemo
 
             try
             {
-                bool result = _logicManager.OpenDatabase();
-                //tabPageCollection = _memoStorageService.LoadTabPageCollection(password);
-
-                if (_logicManager.HasExistingDatabase)
-                {
-                    _logicManager.SaveDatabase();
-                    Log.Warning("FoundDatabaseErrors Saving new recreated database");
-                }
-
-                // Make sure that every tabPageData has a unique Id
-                //bool uniqueIdCreated = tabPageCollection.TabPageDictionary.Values.Aggregate(false, (current, tabPageData) => current | tabPageData.GenerateUniqueIdIfNoneExists());
-
-                //if (uniqueIdCreated)
-                //    _applicationState.UniqueIdMissingFromExistingTabPage = true;
-
-                //if (tabPageCollection.TabPageDictionary.Count == 0)
-                //    tabPageCollection = TabPageDataCollection.CreateNewPageDataCollection(_appSettingsService.Settings.DefaultEmptyTabPages);
+                // OpenDatabase() already re-saves internally if PageDataCollectionManager found and
+                // repaired integrity errors, so there's nothing further to do here on success.
+                _logicManager.OpenDatabase();
             }
             catch (Exception ex)
             {
@@ -835,6 +823,13 @@ namespace SecureMemo
         {
             var frmSelectBackup = _scope.Resolve<FormRestoreBackup>();
             frmSelectBackup.ShowDialog(this);
+
+            if (!frmSelectBackup.Restored) return;
+
+            _logicManager.OpenDatabase();
+            InitializeTabControls();
+            _applicationState.DatabaseLoaded = true;
+            UpdateApplicationState();
         }
 
         private void fileManagerToolStripMenuItem_Click(object sender, EventArgs e)

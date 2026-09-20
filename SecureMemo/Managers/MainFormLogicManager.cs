@@ -196,6 +196,9 @@ namespace SecureMemo.Managers
             string password = _passwordStorage.Get("SharedFolderPassword");
             if (string.IsNullOrEmpty(password)) throw new InvalidOperationException("SaveToSharedFolder requires a password being set");
 
+            // The shared copy is made by file-copying the on-disk database, so any unsaved
+            // in-memory edits must be flushed first or the shared copy would be stale.
+            SaveDatabase();
             bool result = _memoStorageService.SaveTabPageCollectionToSharedFolder(_tabPageDataCollection, password);
 
             _passwordStorage.Set("SharedFolderPassword", null);
@@ -209,6 +212,15 @@ namespace SecureMemo.Managers
 
             var result = _memoStorageService.RestoreBackupFromSyncFolder(password);
             _passwordStorage.Set("RestoreDatabaseFromSync", null);
+
+            if (result.Successful)
+            {
+                // The restored MemoDatabase.dat keeps its original (unwrapped) password, so this is
+                // what OpenDatabase needs to actually load it into memory afterward.
+                _passwordStorage.Set("SecureMemo", password);
+                OpenDatabase();
+            }
+
             PageDataChanged = false;
 
             return result;
@@ -275,6 +287,37 @@ namespace SecureMemo.Managers
         public List<TabPageData> GetTabPageDataCollection()
         {
             return _tabPageDataCollection.TabPageDictionary.Values.ToList();
+        }
+
+        /// <summary>
+        ///     Gets the live tab page data collection instance (not a snapshot), for consumers such
+        ///     as TabSearchEngine that must always see the current in-memory state.
+        /// </summary>
+        public TabPageDataCollection GetActiveTabPageDataCollection()
+        {
+            return _tabPageDataCollection;
+        }
+
+        /// <summary>
+        ///     Replaces the tab page collection with a reordered/edited set of pages (used by the
+        ///     tab management dialog to commit add/remove/reorder edits back to the real model,
+        ///     which it can't do directly since it only edits a local copy of the page list).
+        /// </summary>
+        /// <param name="orderedTabPages">The pages, in their final display order.</param>
+        public void ReplaceTabPageCollection(List<TabPageData> orderedTabPages)
+        {
+            _tabPageDataCollection.TabPageDictionary.Clear();
+            for (int i = 0; i < orderedTabPages.Count; i++)
+            {
+                orderedTabPages[i].PageIndex = i;
+                _tabPageDataCollection.TabPageDictionary.Add(i, orderedTabPages[i]);
+            }
+
+            if (_tabPageDataCollection.ActiveTabIndex >= orderedTabPages.Count)
+                _tabPageDataCollection.ActiveTabIndex = orderedTabPages.Count - 1;
+
+            TabPageStructureChanged = true;
+            OnTabPageCollectionChange?.Invoke(this, new TabPageCollectionEventArgs(TabPageCollectionStateChange.PageAdded));
         }
 
         /// <summary>
@@ -365,15 +408,18 @@ namespace SecureMemo.Managers
             {
                 reindexTask = Task.Factory.StartNew(() =>
                 {
-                    const int lowIndex = 0;
-                    int maxIndex = _tabPageDataCollection.TabPageDictionary.Count - 1;
+                    // itemCount must come from tabPageArray (captured before Clear()), not from
+                    // TabPageDictionary.Count, which is 0 at this point; Dictionary isn't thread-safe
+                    // for concurrent writes, so this repopulates sequentially rather than via Parallel.For.
+                    int itemCount = tabPageArray.Length;
 
-                    Parallel.For(lowIndex, maxIndex, (i, state) =>
+                    for (int i = 0; i < itemCount; i++)
                     {
                         tabPageArray[i].PageIndex = i;
                         _tabPageDataCollection.TabPageDictionary.Add(i, tabPageArray[i]);
-                    });
+                    }
 
+                    int maxIndex = itemCount - 1;
                     if (_tabPageDataCollection.ActiveTabIndex > 0 && _tabPageDataCollection.ActiveTabIndex > maxIndex) _tabPageDataCollection.ActiveTabIndex = maxIndex;
 
                     // Validation
@@ -422,37 +468,6 @@ namespace SecureMemo.Managers
             if (distinctValues.Count() != series.Count()) return false;
 
             return !distinctValues.Where(s => s > 1).Select(x => x).Any();
-        }
-
-        /// <summary>
-        ///     Re-indexes the tab page collection after removal.
-        /// </summary>
-        /// <returns></returns>
-        private bool ReindexTabPageCollectionAfterRemoval()
-        {
-            TabPageData[] tabPageArray;
-            lock (_lockObject)
-            {
-                tabPageArray = _tabPageDataCollection.TabPageDictionary.Values.OrderBy(x => x.PageIndex).ToArray();
-                _tabPageDataCollection.TabPageDictionary.Clear();
-            }
-
-            if (tabPageArray.Length == 0) return false;
-
-            TabPageStructureChanged = true;
-            const int lowIndex = 0;
-            int maxIndex = _tabPageDataCollection.TabPageDictionary.Count - 1;
-
-            for (int i = lowIndex; i < maxIndex; i++)
-            {
-                tabPageArray[i].PageIndex = i;
-                var data = tabPageArray[i];
-                _tabPageDataCollection.TabPageDictionary.Add(data.PageIndex, data);
-            }
-
-            if (_tabPageDataCollection.ActiveTabIndex > 0 && _tabPageDataCollection.ActiveTabIndex > maxIndex) _tabPageDataCollection.ActiveTabIndex = maxIndex;
-
-            return true;
         }
 
         /// <summary>

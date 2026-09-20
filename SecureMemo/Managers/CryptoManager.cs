@@ -33,8 +33,10 @@ namespace SecureMemo.Managers
                 // Tick count being tracked by .Net using 32 bit integers for some strange reason when the WIN_API CALL uses ulong and thus not overflowing in 24 days and 20 hours.
                 int tickCount = Environment.TickCount;
 
-                // Just inject a small amount of noise for each iteration 
-                int pos = tickCount % buffer.Length;
+                // Just inject a small amount of noise for each iteration
+                // TickCount wraps to negative after ~24.9 days of uptime; the extra +buffer.Length
+                // keeps this a valid (always non-negative) array index in that case.
+                int pos = ((tickCount % buffer.Length) + buffer.Length) % buffer.Length;
                 buffer[pos] ^= (byte) (tickCount % byte.MaxValue);
                 buffer = SHA512.GetSHA512HashAsByteArray(buffer);
             }
@@ -60,8 +62,10 @@ namespace SecureMemo.Managers
                 // Tick count being tracked by .Net using 32 bit integers for some strange reason when the WIN_API CALL uses ulong and thus not overflowing in 24 days and 20 hours.
                 int tickCount = Environment.TickCount;
 
-                // Just inject a small amount of noise for each iteration 
-                int pos = tickCount % buffer.Length;
+                // Just inject a small amount of noise for each iteration
+                // TickCount wraps to negative after ~24.9 days of uptime; the extra +buffer.Length
+                // keeps this a valid (always non-negative) array index in that case.
+                int pos = ((tickCount % buffer.Length) + buffer.Length) % buffer.Length;
                 buffer[pos] ^= (byte) (tickCount % byte.MaxValue);
                 buffer = SHA512.GetSHA512HashAsByteArray(buffer);
             }

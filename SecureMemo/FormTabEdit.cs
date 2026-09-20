@@ -46,42 +46,14 @@ namespace SecureMemo
             GC.Collect();
         }
 
-        //private void VerifyAndCorrectIndexing(TabPageDataCollection tabPageDataCollection)
-        //{
-        //    var pageIndexList = tabPageDataCollection.TabPageDictionary.Values.Select(x => x.PageIndex).ToList();
-        //    bool incorrectPageIndexFound = pageIndexList.Any(i => i >= pageIndexList.Count) || tabPageDataCollection.TabPageDictionary.Any(x => x.Value.PageIndex != x.Key);
-        //    if (!incorrectPageIndexFound) return;
-
-        //    var tabPageDataList = tabPageDataCollection.TabPageDictionary.Values.ToList();
-        //    tabPageDataCollection.TabPageDictionary.Clear();
-
-        //    for (int i = 0; i < tabPageDataList.Count; i++)
-        //    {
-        //        tabPageDataList[i].PageIndex = i;
-        //        tabPageDataCollection.TabPageDictionary.Add(i, tabPageDataList[i]);
-        //    }
-
-
-        //    TabDataChanged = true;
-        //}
-
         private void btnOk_Click(object sender, EventArgs e)
         {
-            MainFormLogicManager logicManager = _scope.Resolve<MainFormLogicManager>();
-            //foreach (DraggableListItem draggableListItem in _listViewDataSource)
-            //{
-            //    int index = draggableListItem.Index;
-
-            //    _tabPageDataCollection.TabPageDictionary.Add(index, draggableListItem.PageData);
-            //    _
-            //}
-
-            // set types of updates and sync the model db in response.
-
-
-            //int lastIndex = _tabPageDataCollection.TabPageDictionary.Values.Max(x => x.PageIndex);
-            //if (_tabPageDataCollection.ActiveTabIndex > lastIndex)
-            //    _tabPageDataCollection.ActiveTabIndex = lastIndex;
+            if (TabDataChanged)
+            {
+                MainFormLogicManager logicManager = _scope.Resolve<MainFormLogicManager>();
+                List<TabPageData> orderedTabPages = _listViewDataSource.OrderBy(x => x.Index).Select(x => x.PageData).ToList();
+                logicManager.ReplaceTabPageCollection(orderedTabPages);
+            }
 
             DialogResult = DialogResult.OK;
             Close();

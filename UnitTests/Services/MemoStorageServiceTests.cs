@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SecureMemo.DataModels;
 using SecureMemo.Services;
@@ -66,6 +67,28 @@ namespace UnitTests.Services
         public void DatabaseExists_BeforeAnySave_ReturnsFalse()
         {
             Assert.IsFalse(_memoStorageService.DatabaseExists());
+        }
+
+        [TestMethod]
+        public void MakeBackup_ThenRestoreBackup_RestoresOriginalContent()
+        {
+            var original = new TabPageDataCollection();
+            original.TabPageDictionary.Add(0, new TabPageData { PageIndex = 0, TabPageLabel = "Page1", TabPageText = "original content", UniqueId = Guid.NewGuid().ToString() });
+            _memoStorageService.SaveTabPageCollection(original, "TestPassword123!");
+            _memoStorageService.MakeBackup();
+
+            var overwritten = new TabPageDataCollection();
+            overwritten.TabPageDictionary.Add(0, new TabPageData { PageIndex = 0, TabPageLabel = "Page1", TabPageText = "overwritten content", UniqueId = Guid.NewGuid().ToString() });
+            _memoStorageService.SaveTabPageCollection(overwritten, "TestPassword123!");
+
+            var backups = _memoStorageService.GetBackupFiles().ToList();
+            Assert.AreEqual(1, backups.Count);
+
+            _memoStorageService.RestoreBackup(backups[0]);
+
+            TabPageDataCollection restored = _memoStorageService.LoadTabPageCollection("TestPassword123!");
+            Assert.IsNotNull(restored);
+            Assert.AreEqual("original content", restored.TabPageDictionary[0].TabPageText);
         }
     }
 }

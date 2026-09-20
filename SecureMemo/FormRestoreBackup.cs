@@ -15,6 +15,8 @@ namespace SecureMemo
             InitializeComponent();
         }
 
+        public bool Restored { get; private set; }
+
         private void frmRestoreBackup_Load(object sender, EventArgs e)
         {
             var datasource = _memoStorageService.GetBackupFiles();
@@ -59,6 +61,7 @@ namespace SecureMemo
                     return;
                 }
 
+                Restored = true;
                 MessageBox.Show(this, "Backup restored successfully", "Restore complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
 
