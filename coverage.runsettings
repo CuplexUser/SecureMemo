@@ -21,7 +21,6 @@
               <Exclude>
                 <Source>.*\\SecureMemo\\Form[^\\]*\.cs$</Source>
                 <Source>.*\\SecureMemo\\ApplicationUpdate[^\\]*\.cs$</Source>
-                <Source>.*\\SecureMemo\\AboutAppBox[^\\]*\.cs$</Source>
                 <Source>.*\.Designer\.cs$</Source>
                 <Source>.*\\SecureMemo\\Forms\\.*</Source>
                 <Source>.*\\SecureMemo\\InputForms\\.*</Source>

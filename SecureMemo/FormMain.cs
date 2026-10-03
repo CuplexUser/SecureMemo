@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -133,67 +133,6 @@ namespace SecureMemo
             _logicManager.SetActivePageIndex(tabControlNotepad.SelectedIndex);
 
             UpdateApplicationState();
-        }
-
-        private void UpdateTabControls()
-        {
-            //if (_applicationState.TabPageAddOrRemove)
-            //{
-            //    if (pageRemoved)
-            //    {
-            //        using (var uiTabEnum = tabControlNotepad.TabPages.Cast<TabPage>().GetEnumerator())
-            //        {
-            //            while (uiTabEnum.MoveNext())
-            //            {
-            //                if (uiTabEnum.Current != null)
-            //                {
-            //                    int tabIndex = uiTabEnum.Current.TabIndex;
-            //                    if (!_tabPageDataCollection.TabPageDictionary.ContainsKey(tabIndex))
-            //                    {
-            //                        var tabPageToRemove = tabControlNotepad.TabPages[tabIndex];
-            //                        tabControlNotepad.TabPages.Remove(tabPageToRemove);
-
-            //                        foreach (Control control in tabPageToRemove.Controls)
-            //                        {
-            //                            control.Dispose();
-            //                        }
-
-            //                        tabPageToRemove.Dispose();
-
-            //                        break;
-            //                    }
-            //                }
-            //            }
-            //        }
-            //    }
-            //    else if (pageAdded)
-            //    {
-            //        int tabPageIndexAdded = _tabPageDataCollection.TabPageDictionary.Max(x => x.Key);
-
-
-            //        TabPageData tabPageData = _tabPageDataCollection.TabPageDictionary[tabPageIndexAdded];
-            //        var tabPageControl = new MemoTabPageControl("MemoTabPageControl", tabPageIndexAdded) { Dock = DockStyle.Fill };
-            //        var tabPage = new TabPage(tabPageData.TabPageLabel);
-            //        tabPageControl.TabTextDataChanged += tabPageControl_TabTextDataChanged;
-
-            //        tabPage.Controls.Add(tabPageControl);
-
-            //        if (ControlHelper.GetChildControlByName(tabPageControl, tabPageControl.TabPageControlTextboxName) is RichTextBox richTextBox)
-            //        {
-            //            SecureMemoFontSettings fontSettings = _appSettingsService.Settings.FontSettings;
-            //            richTextBox.Font = new Font(fontSettings.FontFamily, fontSettings.FontSize, fontSettings.Style);
-            //            richTextBox.Text = tabPageData.TabPageText;
-            //            richTextBox.ContextMenuStrip = contextMenuTextArea;
-            //            richTextBox.SelectionChanged += RichTextBox_SelectionChanged;
-            //        }
-
-            //        tabControlNotepad.TabPages.Add(tabPage);
-
-            //    }
-
-            //    _applicationState.TabPageAddOrRemove = false;
-            //    _applicationState.Initializing = false;
-            //}
         }
 
         [SecurityCritical]
@@ -416,7 +355,6 @@ namespace SecureMemo
                 if (result)
                 {
                     _applicationState.TabPageAddOrRemove = true;
-                    UpdateTabControls();
                 }
             }
         }
@@ -442,18 +380,6 @@ namespace SecureMemo
             Log.Warning("CLose db was called without any loaded database.");
             MessageBox.Show("No database was loaded or found.", "Failed to close database", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
-
-        //private void SwapTabs(int sourceIndex, int destinationIndex)
-        //{
-        //    TabPageData tabData = _tabPageDataCollection.TabPageDictionary[sourceIndex];
-        //    _tabPageDataCollection.TabPageDictionary[sourceIndex] = _tabPageDataCollection.TabPageDictionary[destinationIndex];
-        //    _tabPageDataCollection.TabPageDictionary[destinationIndex] = tabData;
-
-        //    _tabPageDataCollection.TabPageDictionary[sourceIndex].PageIndex = sourceIndex;
-        //    _tabPageDataCollection.TabPageDictionary[destinationIndex].PageIndex = destinationIndex;
-
-        //    _tabPageDataCollection.ActiveTabIndex = destinationIndex;
-        //}
 
         private class ApplicationState
         {
@@ -783,7 +709,6 @@ namespace SecureMemo
         {
             _logicManager.AppendNewTabPage();
             _applicationState.TabPageAddOrRemove = true;
-            UpdateTabControls();
         }
 
         private void tabWindowToolStripMenuItem_Click(object sender, EventArgs e)

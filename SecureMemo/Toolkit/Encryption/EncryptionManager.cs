@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
 using Serilog;
 
 namespace SecureMemo.Toolkit.Encryption
@@ -18,20 +17,12 @@ namespace SecureMemo.Toolkit.Encryption
             0x9, 0xee, 0x6e, 0x9a, 0x9b, 0x12
         };
 
-        public async Task<bool> EncryptAndSaveFileAsync(string filePath, MemoryStream ms, string passwordString, CryptoProgress progress)
-        {
-            bool result = await Task.Run(() => EncryptAndSaveFile(filePath, ms, passwordString, progress));
-            return result;
-        }
-
-        public bool EncryptAndSaveFile(string filePath, MemoryStream ms, string passwordString, CryptoProgress progress)
+        public bool EncryptAndSaveFile(string filePath, MemoryStream ms, string passwordString)
         {
             FileStream fs = null;
 
             try
             {
-                CryptoProgressHandler progressHandler = null;
-
                 if (string.IsNullOrEmpty(passwordString))
                     throw new Exception("Password can not be null or empty");
 
@@ -40,33 +31,13 @@ namespace SecureMemo.Toolkit.Encryption
 
                 fs = File.Create(filePath);
 
-                if (progress != null)
+                using (Aes aesAlg = CreateAes(passwordString))
                 {
-                    progressHandler = new CryptoProgressHandler { EncodedBytes = 0, TotalBytes = ms.Length, Text = "Starting ecryption" };
-                    progress.Report(progressHandler);
-                }
-
-                using (Aes aesAlg = Aes.Create())
-                {
-                    Debug.Assert(aesAlg != null, nameof(aesAlg) + " != null");
-                    aesAlg.BlockSize = 128;
-                    aesAlg.KeySize = 256;
-                    aesAlg.Padding = PaddingMode.PKCS7;
-                    aesAlg.Mode = CipherMode.CBC;
-
-                    // Derived in one 48-byte pull (key = first 32 bytes, IV = next 16) to exactly
-                    // reproduce the old stateful GetBytes(32)+GetBytes(16) sequence from a single
-                    // Rfc2898DeriveBytes instance; SHA1 matches that constructor's implicit
-                    // default. Verified byte-for-byte identical to the old API before switching.
-                    byte[] keyMaterial = Rfc2898DeriveBytes.Pbkdf2(Encoding.UTF8.GetBytes(passwordString), SALT, 1000, HashAlgorithmName.SHA1, 48);
-                    aesAlg.Key = keyMaterial[..32];
-                    aesAlg.IV = keyMaterial[32..48];
-
                     // Create a encrypt transform
                     ICryptoTransform encrypt = aesAlg.CreateEncryptor(aesAlg.Key, aesAlg.IV);
 
                     // Create the streams used for encryption.
-                    int bufferSize = (int)Math.Min(MaxBufferSize, ms.Length);
+                    int bufferSize = (int) Math.Min(MaxBufferSize, ms.Length);
                     var buffer = new byte[bufferSize];
                     ms.Position = 0;
 
@@ -74,12 +45,7 @@ namespace SecureMemo.Toolkit.Encryption
                     {
                         int bytesRead;
                         while ((bytesRead = ms.Read(buffer, 0, buffer.Length)) > 0)
-                        {
                             csEncrypt.Write(buffer, 0, bytesRead);
-                            if (progressHandler == null) continue;
-                            progressHandler.EncodedBytes += bytesRead;
-                            progress.Report(progressHandler);
-                        }
 
                         csEncrypt.FlushFinalBlock();
                         fs.Flush();
@@ -94,87 +60,71 @@ namespace SecureMemo.Toolkit.Encryption
             finally
             {
                 fs?.Close();
-                progress?.Report(new CryptoProgressHandler { EncodedBytes = ms.Length, TotalBytes = ms.Length, Text = "Encryption completed" });
             }
 
             return true;
         }
 
-        public async Task<MemoryStream> DecryptFileToMemoryStreamAsync(string filePath, string passwordString, CryptoProgress progress)
-        {
-            MemoryStream result = await Task.Run(() => DecryptFileToMemoryStream(filePath, passwordString, progress));
-            return result;
-        }
-
-        public MemoryStream DecryptFileToMemoryStream(string filePath, string passwordString, CryptoProgress progress)
+        public MemoryStream DecryptFileToMemoryStream(string filePath, string passwordString)
         {
             var ms = new MemoryStream();
             FileStream fs = null;
             try
             {
-                CryptoProgressHandler progressHandler = null;
                 if (string.IsNullOrEmpty(passwordString))
                     throw new Exception("Password can not be null or empty");
 
                 fs = File.OpenRead(filePath);
                 fs.Position = 0;
 
-
-                if (progress != null)
+                using (Aes aesAlg = CreateAes(passwordString))
                 {
-                    progressHandler = new CryptoProgressHandler { EncodedBytes = 0, TotalBytes = fs.Length, Text = "Starting decryption" };
-                    progress.Report(progressHandler);
-                }
-
-                // Create an AesCryptoServiceProvider object
-                using (Aes aesAlg = Aes.Create())
-                {
-                    aesAlg.BlockSize = 128;
-                    aesAlg.KeySize = 256;
-                    aesAlg.Padding = PaddingMode.PKCS7;
-                    aesAlg.Mode = CipherMode.CBC;
-
-                    // Derived in one 48-byte pull (key = first 32 bytes, IV = next 16) to exactly
-                    // reproduce the old stateful GetBytes(32)+GetBytes(16) sequence from a single
-                    // Rfc2898DeriveBytes instance; SHA1 matches that constructor's implicit
-                    // default. Verified byte-for-byte identical to the old API before switching.
-                    byte[] keyMaterial = Rfc2898DeriveBytes.Pbkdf2(Encoding.UTF8.GetBytes(passwordString), SALT, 1000, HashAlgorithmName.SHA1, 48);
-                    aesAlg.Key = keyMaterial[..32];
-                    aesAlg.IV = keyMaterial[32..48];
-
                     // Create a decrytor to perform the stream transform.
                     ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
 
                     // Create the streams used for decryption.
-                    int bufferSize = Math.Min(MaxBufferSize, (int)fs.Length);
+                    int bufferSize = Math.Min(MaxBufferSize, (int) fs.Length);
                     var plainTextBytes = new byte[bufferSize];
 
                     using (var csDecrypt = new CryptoStream(fs, decryptor, CryptoStreamMode.Read))
                     {
                         int decryptedByteCount;
                         while ((decryptedByteCount = csDecrypt.Read(plainTextBytes, 0, plainTextBytes.Length)) > 0)
-                        {
                             ms.Write(plainTextBytes, 0, decryptedByteCount);
-                            if (progressHandler == null) continue;
-                            progressHandler.EncodedBytes += decryptedByteCount;
-                            progress.Report(progressHandler);
-                        }
                     }
                 }
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Error in EncryptionManager.EncryptAndSaveFile");
+                Log.Error(ex, "Error in EncryptionManager.DecryptFileToMemoryStream");
                 return null;
             }
             finally
             {
                 fs?.Close();
-
-                progress?.Report(new CryptoProgressHandler { EncodedBytes = ms.Length, TotalBytes = ms.Length, Text = "Decryption completed" });
             }
 
             return ms;
+        }
+
+        private static Aes CreateAes(string passwordString)
+        {
+            Aes aesAlg = Aes.Create();
+            Debug.Assert(aesAlg != null, nameof(aesAlg) + " != null");
+            aesAlg.BlockSize = 128;
+            aesAlg.KeySize = 256;
+            aesAlg.Padding = PaddingMode.PKCS7;
+            aesAlg.Mode = CipherMode.CBC;
+
+            // Derived in one 48-byte pull (key = first 32 bytes, IV = next 16) to exactly
+            // reproduce the old stateful GetBytes(32)+GetBytes(16) sequence from a single
+            // Rfc2898DeriveBytes instance; SHA1 matches that constructor's implicit
+            // default. Verified byte-for-byte identical to the old API before switching.
+            byte[] keyMaterial = Rfc2898DeriveBytes.Pbkdf2(Encoding.UTF8.GetBytes(passwordString), SALT, 1000, HashAlgorithmName.SHA1, 48);
+            aesAlg.Key = keyMaterial[..32];
+            aesAlg.IV = keyMaterial[32..48];
+
+            return aesAlg;
         }
     }
 }

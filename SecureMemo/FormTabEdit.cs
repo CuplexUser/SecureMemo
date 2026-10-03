@@ -7,7 +7,6 @@ using System.Windows.Forms;
 using Autofac;
 using Autofac.Core.Lifetime;
 using SecureMemo.DataModels;
-using SecureMemo.EventHandlers;
 using SecureMemo.Managers;
 
 namespace SecureMemo
@@ -18,7 +17,6 @@ namespace SecureMemo
         private const int MinLabelLength = 1;
         private readonly List<DraggableListItem> _listViewDataSource;
         private readonly ILifetimeScope _scope;
-        private readonly TabPageCollectionStates _tabPageCollectionStates;
 
         public FormTabEdit(ILifetimeScope scope)
         {
@@ -28,10 +26,6 @@ namespace SecureMemo
             var tabPageDataCollection = logicManager.GetTabPageDataCollection();
             _listViewDataSource = tabPageDataCollection.Select(x => new DraggableListItem {Index = x.PageIndex, Label = x.TabPageLabel, PageData = x}).ToList();
             InitializeComponent();
-
-            _tabPageCollectionStates = new TabPageCollectionStates();
-            _tabPageCollectionStates.SetInitialState(tabPageDataCollection);
-
 
             scope.CurrentScopeEnding += Scope_CurrentScopeEnding;
         }

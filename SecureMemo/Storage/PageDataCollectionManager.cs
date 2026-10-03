@@ -14,31 +14,6 @@ namespace SecureMemo.Storage
             _dataCollection = dataCollection;
         }
 
-        public bool DeleteTabPage(int tabIndex)
-        {
-            if (tabIndex < _dataCollection.TabPageDictionary.Count && tabIndex >= 0)
-            {
-                var tabPage = _dataCollection.TabPageDictionary[tabIndex];
-                List<int> keyList = _dataCollection.TabPageDictionary.Keys.ToList();
-                _dataCollection.TabPageDictionary.Remove(tabIndex);
-
-                if (_dataCollection.ActiveTabIndex == tabIndex)
-                {
-                    if (tabIndex == 0)
-                        _dataCollection.ActiveTabIndex = _dataCollection.TabPageDictionary.Values.Select(x => x.PageIndex).First();
-                    else if (tabIndex == _dataCollection.TabPageDictionary.Count - 1)
-                        _dataCollection.ActiveTabIndex = _dataCollection.TabPageDictionary.Values.Select(x => x.PageIndex).Last();
-                    else
-                        _dataCollection.ActiveTabIndex = _dataCollection.TabPageDictionary.Values.Select(x => x.PageIndex).Last(x => x < tabIndex);
-                }
-
-
-                return true;
-            }
-
-            return false;
-        }
-
         public bool ValidateDataCollectionIntegrity()
         {
             // Pages must be keyed 0..n-1 with each page's PageIndex matching its key; the rest of

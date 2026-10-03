@@ -123,8 +123,8 @@ namespace SecureMemo.Services
         {
             try
             {
-                var storageManager = new StorageManager(new StorageManagerSettings(true, Environment.ProcessorCount, true, password));
-                return storageManager.DeserializeObjectFromFile<StorageFileContent>(_containerFilePath, null)
+                var storageManager = new StorageManager(new StorageManagerSettings(Environment.ProcessorCount, password));
+                return storageManager.DeserializeObjectFromFile<StorageFileContent>(_containerFilePath)
                        ?? throw new CryptographicException("The file storage is empty");
             }
             catch (CryptographicException)
@@ -145,8 +145,8 @@ namespace SecureMemo.Services
                 throw new InvalidOperationException("A password is required to save the file storage");
 
             string tempFilePath = _containerFilePath + ".tmp";
-            var storageManager = new StorageManager(new StorageManagerSettings(true, Environment.ProcessorCount, true, password));
-            if (!storageManager.SerializeObjectToFile(content, tempFilePath, null))
+            var storageManager = new StorageManager(new StorageManagerSettings(Environment.ProcessorCount, password));
+            if (!storageManager.SerializeObjectToFile(content, tempFilePath))
             {
                 File.Delete(tempFilePath);
                 throw new IOException("The file storage could not be saved");

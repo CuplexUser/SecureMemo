@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -51,9 +51,9 @@ namespace SecureMemo.Services
             TabPageDataCollection tabPageDataCollection = null;
             try
             {
-                var settings = new StorageManagerSettings(true, Environment.ProcessorCount, true, password);
+                var settings = new StorageManagerSettings(Environment.ProcessorCount, password);
                 var storageManager = new StorageManager(settings);
-                tabPageDataCollection = storageManager.DeserializeObjectFromFile<TabPageDataCollection>(GetFullPathToDatabaseFile(), null);
+                tabPageDataCollection = storageManager.DeserializeObjectFromFile<TabPageDataCollection>(GetFullPathToDatabaseFile());
 
                 PageDataCollectionManager collectionManager = new PageDataCollectionManager(tabPageDataCollection);
                 FoundDatabaseErrors = !collectionManager.ValidateDataCollectionIntegrity();
@@ -71,9 +71,9 @@ namespace SecureMemo.Services
             bool success = false;
             try
             {
-                var settings = new StorageManagerSettings(true, Environment.ProcessorCount, true, password);
+                var settings = new StorageManagerSettings(Environment.ProcessorCount, password);
                 var storageManager = new StorageManager(settings);
-                success = storageManager.SerializeObjectToFile(tabPageDataCollection, GetFullPathToDatabaseFile(), null);
+                success = storageManager.SerializeObjectToFile(tabPageDataCollection, GetFullPathToDatabaseFile());
             }
             catch (Exception ex)
             {
@@ -90,7 +90,7 @@ namespace SecureMemo.Services
             bool success = false;
             try
             {
-                var settings = new StorageManagerSettings(true, Environment.ProcessorCount, true, password);
+                var settings = new StorageManagerSettings(Environment.ProcessorCount, password);
                 var storageManager = new StorageManager(settings);
 
                 string encodedConfigFilePath = GetFullPathToSharedDatabaseFile();
@@ -99,7 +99,7 @@ namespace SecureMemo.Services
 
                 settings.SetPassword(ConfSaltVal + settings.GetPassword() + ConfSaltVal2);
                 File.Copy(GetFullPathToDatabaseFile(), encodedConfigFilePath);
-                success = storageManager.SerializeObjectToFile(_appSettingsService.Settings, GetFullPathToSharedDecryptedConfigFile(), null);
+                success = storageManager.SerializeObjectToFile(_appSettingsService.Settings, GetFullPathToSharedDecryptedConfigFile());
             }
             catch (Exception ex)
             {
@@ -167,7 +167,7 @@ namespace SecureMemo.Services
                 }
                 else
                 {
-                    var settings = new StorageManagerSettings(true, Environment.ProcessorCount, true, ConfSaltVal + password + ConfSaltVal2);
+                    var settings = new StorageManagerSettings(Environment.ProcessorCount, ConfSaltVal + password + ConfSaltVal2);
                     var secureMemoAppSettings = TryDeserializeFromFile<SecureMemoAppSettings>(settings, GetFullPathToSharedDecryptedConfigFile());
 
                     if (string.IsNullOrWhiteSpace(secureMemoAppSettings?.ApplicationSaltValue) || string.IsNullOrWhiteSpace(secureMemoAppSettings.PasswordDerivedString))
@@ -175,7 +175,7 @@ namespace SecureMemo.Services
                         restoreSyncDataResult.ErrorCode = restoreSyncDataResult.ErrorCode | RestoreSyncDataErrorCodes.ApplicationSettingsFileParseError;
                         restoreSyncDataResult.ErrorText = "Invalid password";
                     }
-                    else if (TryDeserializeFromFile<TabPageDataCollection>(new StorageManagerSettings(true, Environment.ProcessorCount, true, password), GetFullPathToSharedDatabaseFile()) == null)
+                    else if (TryDeserializeFromFile<TabPageDataCollection>(new StorageManagerSettings(Environment.ProcessorCount, password), GetFullPathToSharedDatabaseFile()) == null)
                     {
                         // The synced database is a copy of the local one, so it keeps the password of
                         // the database it was saved from, which can differ from the sync password.
@@ -217,7 +217,7 @@ namespace SecureMemo.Services
         {
             try
             {
-                return new StorageManager(settings).DeserializeObjectFromFile<T>(path, null);
+                return new StorageManager(settings).DeserializeObjectFromFile<T>(path);
             }
             catch (Exception ex)
             {

@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+using System;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Runtime.Serialization;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
-using SecureMemo.Toolkit.Compression.SevenZip;
 using SecureMemo.Toolkit.Compression.SevenZip.Compress.LZMA;
 using SecureMemo.Toolkit.Encryption;
 using SecureMemo.Toolkit.Storage.Models;
@@ -15,187 +12,57 @@ using Serilog;
 
 namespace SecureMemo.Toolkit.Storage
 {
-    public class StorageManager : StorageManagerBase, IStorageManager
+    /// <summary>
+    ///     Saves [DataContract] objects as protobuf, LZMA-compressed in parallel 2 MB blocks and then
+    ///     AES-encrypted, and reads them back.
+    /// </summary>
+    public class StorageManager
     {
         private const int BlockSize = 0x200000;
-        private readonly StorageManagerSettings _settings;
         private static readonly object FileLock = new object();
+        private readonly StorageManagerSettings _settings;
 
         public StorageManager(StorageManagerSettings settings)
         {
-            _settings = settings;
-
-            if (settings == null)
-                throw new ArgumentException("StorageManagerSettings was null");
+            _settings = settings ?? throw new ArgumentException("StorageManagerSettings was null");
         }
 
-        public bool SerializeObjectToFile(object obj, string path, IProgress<StorageManagerProgress> progress)
+        public bool SerializeObjectToFile(object obj, string path)
         {
-            if (!VerifyObjectToSerialize(obj))
+            if (obj == null)
                 throw new ArgumentException("serializableObject is not serializable");
 
-            if (_settings.UseEncryption)
+            var encryptionManager = new EncryptionManager();
+            MemoryStream ms = SerializeAndCompressObjectToMemoryStream(obj);
+
+            lock (FileLock)
             {
-                var encryptionManager = new EncryptionManager();
-                var ms = SerializeAndCompressObjectToMemoryStream(obj, progress);
-
-                lock (FileLock)
-                {
-                    return encryptionManager.EncryptAndSaveFile(path, ms, _settings.GetPassword(), null);
-                }
-
+                return encryptionManager.EncryptAndSaveFile(path, ms, _settings.GetPassword());
             }
-
-            return SerializeAndCompressObjectToFile(obj, path, progress);
         }
 
-        public async Task<bool> SerializeObjectToFileAsync(object obj, string path, IProgress<StorageManagerProgress> progress)
+        public T DeserializeObjectFromFile<T>(string path)
         {
-            if (!VerifyObjectToSerialize(obj))
-                throw new ArgumentException("serializableObject is not serializable");
-
-            return await Task.Factory.StartNew(() => SerializeObjectToFile(obj, path, progress));
-        }
-
-        public T DeserializeObjectFromFile<T>(string path, IProgress<StorageManagerProgress> progress)
-        {
-            if (_settings.UseEncryption)
-                return DeSerializeAndDecompressObjectFromEncryptedFile<T>(path, progress);
-
-            return DeSerializeAndDecompressObjectFromFile<T>(path, progress);
-        }
-
-        public async Task<T> DeserializeObjectFromFileAsync<T>(string path, IProgress<StorageManagerProgress> progress)
-        {
-            return await Task.Factory.StartNew(() => DeserializeObjectFromFile<T>(path, progress));
-        }
-
-        public bool CompressFile(List<string> filesToCompress, string outputFile, IProgress<StorageManagerProgress> progress)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<bool> CompressFileAsync(List<string> filesToCompress, string outputFile, IProgress<StorageManagerProgress> progress)
-        {
-            throw new NotImplementedException();
-        }
-
-        #region Serialize
-
-        private MemoryStream SerializeAndCompressObjectToMemoryStream(object obj, IProgress<StorageManagerProgress> progress)
-        {
-            MemoryStream msInput = new MemoryStream();
-            MemoryStream msOutput = new MemoryStream();
-
-            var attrs = Attribute.GetCustomAttributes(obj.GetType());
-            bool protoBufferCompatible = attrs.OfType<DataContractAttribute>().Any();
-
-            progress?.Report(protoBufferCompatible ? new StorageManagerProgress { ProgressPercentage = 0, Text = "Serializing using Protobuffer" } : new StorageManagerProgress { ProgressPercentage = 0, Text = "Serializing using BinaryFormatter" });
-
-            if (protoBufferCompatible)
-                Serializer.NonGeneric.Serialize(msInput, obj);
-            else
-            {
-                throw new ArgumentException("input object is not serializable as a DataContract", nameof(obj));
-            }
-
-            CodeProgressImplementation coderProgress = null;
-            if (progress != null)
-            {
-                coderProgress = new CodeProgressImplementation(progress, CodeProgressImplementation.CodingOperations.Encoding, msInput.Length);
-                progress.Report(new StorageManagerProgress { ProgressPercentage = 0, Text = "Starting LZMA encoding of file" });
-            }
-
-            msInput.Position = 0;
-
-            if (_settings.UseMultithreading)
-                CompressDataMultithreaded(msInput, msOutput, coderProgress);
-            else
-                CompressData(msInput, msOutput, msInput.Length, coderProgress);
-
-            GC.Collect();
-            return msOutput;
-        }
-
-        private bool SerializeAndCompressObjectToFile(object obj, string path, IProgress<StorageManagerProgress> progress)
-        {
-            CodeProgressImplementation coderProgress = null;
-            Stream output = null;
-            try
-            {
-                output = new FileStream(path, FileMode.Create);
-                MemoryStream input = new MemoryStream();
-
-                var attrs = Attribute.GetCustomAttributes(obj.GetType());
-                bool protoBufferCompatible = attrs.OfType<DataContractAttribute>().Any();
-
-                if (progress != null)
-                    progress.Report(protoBufferCompatible ? new StorageManagerProgress { ProgressPercentage = 0, Text = "Serializing using Protobuffer" } : new StorageManagerProgress { ProgressPercentage = 0, Text = "Serializing using BinaryFormatter" });
-
-                if (protoBufferCompatible)
-                    Serializer.NonGeneric.Serialize(input, obj);
-                else
-                {
-                    throw new ArgumentException("input object is not serializable as a DataContract", nameof(obj));
-                }
-
-                input.Position = 0;
-
-                // Encode the file.
-                if (progress != null)
-                {
-                    coderProgress = new CodeProgressImplementation(progress, CodeProgressImplementation.CodingOperations.Encoding, input.Length);
-                    progress.Report(new StorageManagerProgress { ProgressPercentage = 0, Text = "Starting LZMA encoding of file" });
-                }
-
-                if (_settings.UseMultithreading)
-                    CompressDataMultithreaded(input, output, coderProgress);
-                else
-                    CompressData(input, output, input.Length, coderProgress);
-
-                output.Flush();
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Error in StorageManager.SerializeAndCompressObjectToFile()");
-                return false;
-            }
-            finally
-            {
-                output?.Close();
-            }
-            return true;
-        }
-
-        #endregion
-
-        #region Deserialize
-
-        private T DeSerializeAndDecompressObjectFromEncryptedFile<T>(string path, IProgress<StorageManagerProgress> progress)
-        {
-            EncryptionManager encryptionManager = new EncryptionManager();
+            var encryptionManager = new EncryptionManager();
             Stream input = null;
-            MemoryStream output = new MemoryStream();
+            var output = new MemoryStream();
             try
             {
-                input = encryptionManager.DecryptFileToMemoryStream(path, _settings.GetPassword(), new CryptoProgress(progress));
+                input = encryptionManager.DecryptFileToMemoryStream(path, _settings.GetPassword());
                 input.Position = 0;
 
-                if (_settings.UseMultithreading && CompressionFileHeader.VerifyFileHeader(input))
-                    DeflateDataMultithreded(input, output, progress);
+                if (CompressionFileHeader.VerifyFileHeader(input))
+                    DeflateDataMultithreaded(input, output);
                 else
-                {
-                    CodeProgressImplementation coderProgress = new CodeProgressImplementation(progress, CodeProgressImplementation.CodingOperations.Decoding);
-                    progress?.Report(new StorageManagerProgress { ProgressPercentage = 0, Text = "Starting LZMA multithreaded decoding of file" });
-                    DeflateData(input, output, input.Length, coderProgress).RunSynchronously();
-                }
+                    // Plain single LZMA stream, as written without the multi-block header.
+                    DeflateData(input, output, input.Length).RunSynchronously();
 
                 output.Flush();
                 output.Position = 0;
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Error in StorageManager.DeSerializeAndDecompressObjectFromEncryptedFile()");
+                Log.Error(ex, "Error in StorageManager.DeserializeObjectFromFile()");
                 throw new CryptographicUnexpectedOperationException("DeSerializeAndDecompressObjectFromEncryptedFile");
             }
             finally
@@ -203,76 +70,33 @@ namespace SecureMemo.Toolkit.Storage
                 input?.Close();
             }
 
-            Attribute[] attrs = Attribute.GetCustomAttributes(typeof(T));
-            bool protoBufferCompatible = attrs.OfType<DataContractAttribute>().Any();
-
-            progress?.Report(protoBufferCompatible ? new StorageManagerProgress { ProgressPercentage = 0, Text = "Deserializing using Protobuffer" } : new StorageManagerProgress { ProgressPercentage = 0, Text = "Deserializing using BinaryFormatter" });
-
-
             return Serializer.Deserialize<T>(output);
-
         }
 
-        private T DeSerializeAndDecompressObjectFromFile<T>(string path, IProgress<StorageManagerProgress> progress)
+        private MemoryStream SerializeAndCompressObjectToMemoryStream(object obj)
         {
-            CodeProgressImplementation coderProgress = null;
-            FileStream inputFileStream = null;
-            MemoryStream output = new MemoryStream();
-            try
-            {
-                inputFileStream = File.OpenRead(path);
+            var msInput = new MemoryStream();
+            var msOutput = new MemoryStream();
 
-                if (progress != null)
-                {
-                    coderProgress = new CodeProgressImplementation(progress, CodeProgressImplementation.CodingOperations.Decoding);
-                    progress.Report(new StorageManagerProgress { ProgressPercentage = 0, Text = "Starting LZMA decoding of file" });
-                }
+            if (!Attribute.GetCustomAttributes(obj.GetType()).OfType<DataContractAttribute>().Any())
+                throw new ArgumentException("input object is not serializable as a DataContract", nameof(obj));
 
-                if (_settings.UseMultithreading && CompressionFileHeader.VerifyFileHeader(inputFileStream))
-                    DeflateDataMultithreded(inputFileStream, output, progress);
-                else
-                    DeflateData(inputFileStream, output, inputFileStream.Length, coderProgress).RunSynchronously();
+            Serializer.NonGeneric.Serialize(msInput, obj);
+            msInput.Position = 0;
+            CompressDataMultithreaded(msInput, msOutput);
 
-                output.Flush();
-                output.Position = 0;
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Error in StorageManager.DeSerializeAndDecompressObjectFromFile()");
-            }
-            finally
-            {
-                inputFileStream?.Close();
-            }
-
-            T deserializedObj;
-            var attrs = Attribute.GetCustomAttributes(typeof(T));
-            if (attrs.OfType<DataContractAttribute>().Any())
-                deserializedObj = Serializer.Deserialize<T>(output);
-            else
-            {
-                throw new ArgumentException("input object is not serializable as a DataContract", nameof(path));
-            }
-
-            output.Dispose();
             GC.Collect();
-            return deserializedObj;
+            return msOutput;
         }
 
-        #endregion
-
-        #region Private helper methods
-
-        private void CompressDataMultithreaded(Stream input, Stream output, CodeProgressImplementation coderProgress)
+        private void CompressDataMultithreaded(Stream input, Stream output)
         {
-            //Write file header
-            CompressionFileHeader compressionFileHeader = new CompressionFileHeader(input.Length, BlockSize);
+            var compressionFileHeader = new CompressionFileHeader(input.Length, BlockSize);
 
             int sizeOfHeader = compressionFileHeader.FileHeaderSize;
             output.Position = sizeOfHeader;
 
-            long totalEncodeSize = input.Length;
-            long bytesLeft = totalEncodeSize;
+            long bytesLeft = input.Length;
 
             var tasks = new Task[_settings.NumberOfThreads];
             var outMemoryStreams = new MemoryStream[_settings.NumberOfThreads];
@@ -284,7 +108,7 @@ namespace SecureMemo.Toolkit.Storage
                 int taskCount = 0;
                 for (int i = 0; i < tasks.Length; i++)
                 {
-                    int encodeSize = Math.Min(BlockSize, (int)bytesLeft);
+                    int encodeSize = Math.Min(BlockSize, (int) bytesLeft);
 
                     if (encodeSize <= 0)
                         break;
@@ -297,22 +121,19 @@ namespace SecureMemo.Toolkit.Storage
                     if (bytesRead == 0)
                         break;
 
-                    MemoryStream inputStream = new MemoryStream(buffer);
-                    MemoryStream outStream = new MemoryStream();
+                    var inputStream = new MemoryStream(buffer);
+                    var outStream = new MemoryStream();
                     outMemoryStreams[i] = outStream;
                     inputBlockSizeArray[i] = bytesRead;
-                    tasks[i] = new Task(() => { CompressData(inputStream, outStream, bytesRead, null); });
+                    tasks[i] = new Task(() => { CompressData(inputStream, outStream, bytesRead); });
                     tasks[i].Start();
                 }
 
-                var activeTasks = tasks.Take(taskCount).ToArray();
-                Task.WaitAll(activeTasks);
-
-                coderProgress?.SetProgress(totalEncodeSize - bytesLeft, -1);
+                Task.WaitAll(tasks.Take(taskCount).ToArray());
 
                 for (int i = 0; i < taskCount; i++)
                 {
-                    CompressionBlock compressionBlock = new CompressionBlock();
+                    var compressionBlock = new CompressionBlock();
                     var outBytes = outMemoryStreams[i].ToArray();
                     outMemoryStreams[i] = null;
                     compressionBlock.CompressedBlockSize = outBytes.Length;
@@ -332,19 +153,8 @@ namespace SecureMemo.Toolkit.Storage
             output.Write(headerBytes, 0, headerBytes.Length);
         }
 
-        private void DeflateDataMultithreded(Stream inputDataStream, Stream outputStream, IProgress<StorageManagerProgress> progress)
+        private void DeflateDataMultithreaded(Stream inputDataStream, Stream outputStream)
         {
-            CodeProgressImplementation coderProgress = null;
-
-            if (!CompressionFileHeader.VerifyFileHeader(inputDataStream))
-                throw new Exception("Invalid file header");
-
-            if (progress != null)
-            {
-                coderProgress = new CodeProgressImplementation(progress, CodeProgressImplementation.CodingOperations.Decoding);
-                progress.Report(new StorageManagerProgress { ProgressPercentage = 0, Text = "Starting LZMA multithreaded decoding of file" });
-            }
-
             CompressionFileHeader compressionFileHeader = CompressionFileHeader.DecodeHeader(inputDataStream);
             inputDataStream.Position = compressionFileHeader.FileHeaderSize;
 
@@ -361,13 +171,11 @@ namespace SecureMemo.Toolkit.Storage
                     outputMemoryStreams[i] = new MemoryStream();
                     var buffer = new byte[dataBlock.CompressedBlockSize];
                     inputDataStream.ReadExactly(buffer, 0, buffer.Length);
-                    MemoryStream inputStream = new MemoryStream(buffer) { Position = 0 };
-                    decoderTasks[i] = DeflateData(inputStream, outputMemoryStreams[i], dataBlock.CompressedBlockSize, coderProgress);
+                    var inputStream = new MemoryStream(buffer) {Position = 0};
+                    decoderTasks[i] = DeflateData(inputStream, outputMemoryStreams[i], dataBlock.CompressedBlockSize);
                     decoderTasks[i].Start();
                     currentBlock++;
                     taskCount++;
-
-                    progress?.Report(new StorageManagerProgress { ProgressPercentage = currentBlock / compressionFileHeader.NumberOfBlocks, Text = "Decoding block " + currentBlock });
 
                     if (currentBlock == compressionFileHeader.NumberOfBlocks)
                         break;
@@ -383,9 +191,9 @@ namespace SecureMemo.Toolkit.Storage
             }
         }
 
-        private void CompressData(Stream inputStream, Stream outStream, long inputSize, ICodeProgress progress)
+        private static void CompressData(Stream inputStream, Stream outStream, long inputSize)
         {
-            Encoder coder = new Encoder();
+            var coder = new Encoder();
 
             // Write the encoder properties
             coder.WriteCoderProperties(outStream);
@@ -393,14 +201,14 @@ namespace SecureMemo.Toolkit.Storage
             // Write the decompressed file size.
             outStream.Write(BitConverter.GetBytes(inputSize), 0, 8);
 
-            coder.Code(inputStream, outStream, inputSize, -1, progress);
+            coder.Code(inputStream, outStream, inputSize, -1, null);
         }
 
-        private Task DeflateData(Stream inputStream, Stream outStream, long compressedSize, ICodeProgress progress)
+        private static Task DeflateData(Stream inputStream, Stream outStream, long compressedSize)
         {
             return new Task(() =>
             {
-                Decoder decoder = new Decoder();
+                var decoder = new Decoder();
 
                 // Read the decoder properties
                 var properties = new byte[5];
@@ -413,18 +221,8 @@ namespace SecureMemo.Toolkit.Storage
 
                 decoder.SetDecoderProperties(properties);
 
-                decoder.Code(inputStream, outStream, compressedSize, blockSize, progress);
+                decoder.Code(inputStream, outStream, compressedSize, blockSize, null);
             });
         }
-
-        private bool VerifyObjectToSerialize(object obj)
-        {
-            // TypeAttributes.Serializable & TypeAttributes.Public evaluates to 0 (NotPublic), and
-            // Enum.HasFlag(0) is always true, so the original check was equivalent to `obj != null`
-            // regardless of the type's actual attributes; kept as-is to preserve exact behavior.
-            return obj != null;
-        }
-
-        #endregion
     }
 }

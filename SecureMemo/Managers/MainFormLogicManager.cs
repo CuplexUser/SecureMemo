@@ -1,10 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
-using Autofac;
 using SecureMemo.Toolkit.Storage.Memory;
 using SecureMemo.DataModels;
 using SecureMemo.Delegates;
@@ -40,11 +39,6 @@ namespace SecureMemo.Managers
         private readonly PasswordStorage _passwordStorage;
 
         /// <summary>
-        ///     The scope
-        /// </summary>
-        private readonly ILifetimeScope _scope;
-
-        /// <summary>
         ///     The lock object
         /// </summary>
         private readonly object _lockObject = new object();
@@ -55,10 +49,7 @@ namespace SecureMemo.Managers
         /// </summary>
         private TabPageDataCollection _tabPageDataCollection;
 
-        private bool PageDataChanged;
-
         private readonly CancellationToken reIndexCancellationToken = new CancellationToken(false);
-        private bool TabPageStructureChanged;
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="MainFormLogicManager" /> class.
@@ -66,26 +57,14 @@ namespace SecureMemo.Managers
         /// <param name="memoStorageService">The memo storage service.</param>
         /// <param name="fileStorageService">The file storage service.</param>
         /// <param name="passwordStorage">The password storage.</param>
-        /// <param name="scope">The scope.</param>
         /// <param name="appSettingsService">The application settings service.</param>
-        public MainFormLogicManager(MemoStorageService memoStorageService, FileStorageService fileStorageService, PasswordStorage passwordStorage, ILifetimeScope scope, AppSettingsService appSettingsService)
+        public MainFormLogicManager(MemoStorageService memoStorageService, FileStorageService fileStorageService, PasswordStorage passwordStorage, AppSettingsService appSettingsService)
         {
             _memoStorageService = memoStorageService;
             _fileStorageService = fileStorageService;
-            _scope = scope;
             _appSettingsService = appSettingsService;
             _passwordStorage = passwordStorage;
             _tabPageDataCollection = TabPageDataCollection.CreateNewPageDataCollection(_appSettingsService.Settings.DefaultEmptyTabPages);
-        }
-
-        public bool IsModified
-        {
-            get => TabPageStructureChanged || PageDataChanged;
-            private set
-            {
-                TabPageStructureChanged = value;
-                PageDataChanged = value;
-            }
         }
 
         /// <summary>
@@ -103,9 +82,6 @@ namespace SecureMemo.Managers
         ///     The index of the active page.
         /// </value>
         public int ActivePageIndex => _tabPageDataCollection.ActiveTabIndex;
-
-        //TabPageCollectionEventHandler (TabPageCollectionEventArgs eventArgs ) eaaaa;
-
 
         /// <summary>
         ///     Gets or sets a value indicating whether this instance has existing database.
@@ -132,24 +108,11 @@ namespace SecureMemo.Managers
             _tabPageDataCollection = TabPageDataCollection.CreateNewPageDataCollection(_appSettingsService.Settings.DefaultEmptyTabPages);
             _memoStorageService.SaveTabPageCollection(_tabPageDataCollection, password);
             OnTabPageCollectionChange?.Invoke(this, new TabPageCollectionEventArgs(TabPageCollectionStateChange.NewDatabaseCreated));
-            PageDataChanged = true;
         }
 
         public void CreateBackup()
         {
             _memoStorageService.MakeBackup();
-        }
-
-        public bool UpdateTabPageLabel(int index, string tabLabel)
-        {
-            if (index >= 0 && index < _tabPageDataCollection.TabPageDictionary.Count)
-            {
-                _tabPageDataCollection.TabPageDictionary[index].TabPageLabel = tabLabel;
-                OnTabPageCollectionChange?.Invoke(this, new TabPageCollectionEventArgs(TabPageCollectionStateChange.PageLabelChanged));
-                return true;
-            }
-
-            return false;
         }
 
         public void SetActivePageIndex(int pageIndex)
@@ -160,27 +123,15 @@ namespace SecureMemo.Managers
             _tabPageDataCollection.ActiveTabIndex = pageIndex;
         }
 
-        public string GetActiveTabText()
-        {
-            int pageIndex = _tabPageDataCollection.ActiveTabIndex;
-            return _tabPageDataCollection.TabPageDictionary[pageIndex].TabPageText;
-        }
-
         public void SetTabPageText(int pageIndex, string tabPageText)
         {
             _tabPageDataCollection.TabPageDictionary[pageIndex].TabPageText = tabPageText;
-            PageDataChanged = true;
-        }
-
-        public void SaveNew()
-        {
         }
 
         public void SaveDatabase()
         {
             string password = _passwordStorage.Get("SecureMemo");
             _memoStorageService.SaveTabPageCollection(_tabPageDataCollection, password);
-            PageDataChanged = false;
         }
 
         /// <summary>
@@ -247,7 +198,6 @@ namespace SecureMemo.Managers
                 OpenDatabase();
             }
 
-            PageDataChanged = false;
 
             return result;
         }
@@ -260,7 +210,6 @@ namespace SecureMemo.Managers
             _tabPageDataCollection = null;
             GC.Collect();
             _tabPageDataCollection = TabPageDataCollection.CreateNewPageDataCollection(_appSettingsService.Settings.DefaultEmptyTabPages);
-            PageDataChanged = true;
         }
 
         /// <summary>
@@ -302,7 +251,6 @@ namespace SecureMemo.Managers
             page.TabPageLabel = $"Page{PageCount + 1}";
             _tabPageDataCollection.TabPageDictionary.Add(page.PageIndex, page);
             _tabPageDataCollection.ActiveTabIndex = page.PageIndex;
-            TabPageStructureChanged = true;
 
             OnTabPageCollectionChange?.Invoke(this, new TabPageCollectionEventArgs(TabPageCollectionStateChange.PageAdded));
         }
@@ -347,7 +295,6 @@ namespace SecureMemo.Managers
             if (_tabPageDataCollection.ActiveTabIndex >= orderedTabPages.Count)
                 _tabPageDataCollection.ActiveTabIndex = orderedTabPages.Count - 1;
 
-            TabPageStructureChanged = true;
             OnTabPageCollectionChange?.Invoke(this, new TabPageCollectionEventArgs(TabPageCollectionStateChange.PageAdded));
         }
 
@@ -358,7 +305,6 @@ namespace SecureMemo.Managers
         public void SetActiveTabPageText(string text)
         {
             _tabPageDataCollection.TabPageDictionary[_tabPageDataCollection.ActiveTabIndex].TabPageText = text;
-            PageDataChanged = true;
         }
 
         /// <summary>
@@ -369,7 +315,6 @@ namespace SecureMemo.Managers
         public void SetTabPageLabel(int tabPageIndex, string tabPageLabel)
         {
             _tabPageDataCollection.TabPageDictionary[tabPageIndex].TabPageLabel = tabPageLabel;
-            PageDataChanged = true;
         }
 
         /// <summary>
@@ -383,7 +328,6 @@ namespace SecureMemo.Managers
             if (!_tabPageDataCollection.TabPageDictionary.Remove(tabIndex)) return false;
 
             // State
-            TabPageStructureChanged = true;
 
             // Reindexing
             bool reindexState = await ReindexTabPageCollectionAfterRemovalAsync().ConfigureAwait(true);
@@ -517,7 +461,6 @@ namespace SecureMemo.Managers
             if (!_memoStorageService.FoundDatabaseErrors) return true;
 
             SaveDatabase();
-            IsModified = false;
 
             return true;
         }

@@ -48,7 +48,7 @@ namespace UnitTests.Managers
 
         private MainFormLogicManager CreateLogicManager()
         {
-            return new MainFormLogicManager(_memoStorageService, CreateFileStorageService(), _passwordStorage, null, _appSettingsService);
+            return new MainFormLogicManager(_memoStorageService, CreateFileStorageService(), _passwordStorage, _appSettingsService);
         }
 
         private FileStorageService CreateFileStorageService()
