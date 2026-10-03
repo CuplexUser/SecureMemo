@@ -1,8 +1,6 @@
-﻿using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
 using System.Reflection;
 using Autofac;
-using AutoMapper;
 using SecureMemo.Toolkit.ConfigHelper;
 using SecureMemo.Toolkit.Configuration;
 using SecureMemo.Toolkit.Storage.Memory;
@@ -54,36 +52,9 @@ namespace SecureMemo.Configuration
             // Register instantiation of Search engine
             builder.RegisterType<TabSearchEngine>().AsSelf().InstancePerLifetimeScope();
 
-            // Register Automapper and configure the mapping bindings 
-            builder.Register(context => context.Resolve<MapperConfiguration>()
-                    .CreateMapper())
-                .As<IMapper>()
-                .AutoActivate()
-                .SingleInstance();
-
-            builder.Register(Configure)
-                .AutoActivate()
-                .AsSelf()
-                .AsImplementedInterfaces()
-                .SingleInstance();
-
             var container = builder.Build();
 
             return container;
-        }
-
-
-        private static MapperConfiguration Configure(IComponentContext context)
-        {
-            var configuration = new MapperConfiguration(cfg =>
-            {
-                var innerContext = context.Resolve<IComponentContext>();
-                cfg.ConstructServicesUsing(innerContext.Resolve);
-
-                foreach (var profile in context.Resolve<IEnumerable<Profile>>()) cfg.AddProfile(profile);
-            });
-
-            return configuration;
         }
     }
 }

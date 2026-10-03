@@ -10,8 +10,6 @@
     <IsPackable>false</IsPackable>
     <SignAssembly>false</SignAssembly>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <!-- NU1903 on AutoMapper (transitive, via SecureMemo) is a license-change notice, not a code vulnerability; see SecureMemo.csproj. -->
-    <NoWarn>$(NoWarn);NU1903</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
