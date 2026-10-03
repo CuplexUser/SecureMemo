@@ -29,7 +29,7 @@ namespace UnitTests.Config
             builder.RegisterInstance(testAppBuildConfig).As<TestAppBuildConfig>().SingleInstance();
             builder.RegisterInstance(appSettings).As<AppSettingsService>().SingleInstance();
             builder.RegisterInstance(memoStorageService).As<MemoStorageService>().SingleInstance();
-            builder.RegisterInstance(new FileStorageService()).As<FileStorageService>().SingleInstance();
+            builder.RegisterInstance(new FileStorageService(Path.Combine(settingsFolderPath, FileStorageService.ContainerFileName))).As<FileStorageService>().SingleInstance();
             builder.RegisterInstance(passwordStorageMgr).As<PasswordStorage>().SingleInstance();
 
             builder.RegisterAssemblyModules(Assembly.GetExecutingAssembly());

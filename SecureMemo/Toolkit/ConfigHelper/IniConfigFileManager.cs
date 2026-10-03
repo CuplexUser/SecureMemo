@@ -57,7 +57,7 @@ namespace SecureMemo.Toolkit.ConfigHelper
                     }
                     else if (configSection != null && configItemPattern.IsMatch(lineData))
                     {
-                        string[] confArr = lineData.Split('=');
+                        string[] confArr = lineData.Split('=', 2);
                         configSection.ConfigItems[confArr[0].Trim()] = confArr[1].Trim();
                     }
                 }

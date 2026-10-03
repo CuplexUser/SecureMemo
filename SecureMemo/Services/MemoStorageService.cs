@@ -158,22 +158,30 @@ namespace SecureMemo.Services
                 if (!File.Exists(GetFullPathToSharedDatabaseFile()))
                 {
                     restoreSyncDataResult.ErrorCode = RestoreSyncDataErrorCodes.MemoDatabaseFileNotFound;
+                    restoreSyncDataResult.ErrorText = "No memo database was found in the sync folder.";
                 }
                 else if (!File.Exists(GetFullPathToSharedDecryptedConfigFile()))
                 {
                     restoreSyncDataResult.ErrorCode = restoreSyncDataResult.ErrorCode | RestoreSyncDataErrorCodes.ApplicationSettingsFileNotFound;
+                    restoreSyncDataResult.ErrorText = "No application settings were found in the sync folder.";
                 }
                 else
                 {
                     var settings = new StorageManagerSettings(true, Environment.ProcessorCount, true, ConfSaltVal + password + ConfSaltVal2);
-                    var storageManager = new StorageManager(settings);
+                    var secureMemoAppSettings = TryDeserializeFromFile<SecureMemoAppSettings>(settings, GetFullPathToSharedDecryptedConfigFile());
 
-                    var secureMemoAppSettings = storageManager.DeserializeObjectFromFile<SecureMemoAppSettings>(GetFullPathToSharedDecryptedConfigFile(), null);
-
-                    if (string.IsNullOrWhiteSpace(secureMemoAppSettings.ApplicationSaltValue) || string.IsNullOrWhiteSpace(secureMemoAppSettings.PasswordDerivedString))
+                    if (string.IsNullOrWhiteSpace(secureMemoAppSettings?.ApplicationSaltValue) || string.IsNullOrWhiteSpace(secureMemoAppSettings.PasswordDerivedString))
                     {
                         restoreSyncDataResult.ErrorCode = restoreSyncDataResult.ErrorCode | RestoreSyncDataErrorCodes.ApplicationSettingsFileParseError;
                         restoreSyncDataResult.ErrorText = "Invalid password";
+                    }
+                    else if (TryDeserializeFromFile<TabPageDataCollection>(new StorageManagerSettings(true, Environment.ProcessorCount, true, password), GetFullPathToSharedDatabaseFile()) == null)
+                    {
+                        // The synced database is a copy of the local one, so it keeps the password of
+                        // the database it was saved from, which can differ from the sync password.
+                        // Checked before anything local is replaced.
+                        restoreSyncDataResult.ErrorCode = restoreSyncDataResult.ErrorCode | RestoreSyncDataErrorCodes.MemoDatabaseFileParseError;
+                        restoreSyncDataResult.ErrorText = "The synced memo database could not be opened with this password. It uses the password of the database it was saved from.";
                     }
                     else
                     {
@@ -203,6 +211,19 @@ namespace SecureMemo.Services
             }
 
             return restoreSyncDataResult;
+        }
+
+        private static T TryDeserializeFromFile<T>(StorageManagerSettings settings, string path) where T : class
+        {
+            try
+            {
+                return new StorageManager(settings).DeserializeObjectFromFile<T>(path, null);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Could not decrypt {Path}", path);
+                return null;
+            }
         }
     }
 }

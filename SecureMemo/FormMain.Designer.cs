@@ -356,12 +356,14 @@
             this.exportFileDatabaseToolStripMenuItem.Name = "exportFileDatabaseToolStripMenuItem";
             this.exportFileDatabaseToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.exportFileDatabaseToolStripMenuItem.Text = "Export File Database";
+            this.exportFileDatabaseToolStripMenuItem.Click += new System.EventHandler(this.exportFileDatabaseToolStripMenuItem_Click);
             // 
             // clearFileDatabaseToolStripMenuItem
             // 
             this.clearFileDatabaseToolStripMenuItem.Name = "clearFileDatabaseToolStripMenuItem";
             this.clearFileDatabaseToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.clearFileDatabaseToolStripMenuItem.Text = "Clear File Database";
+            this.clearFileDatabaseToolStripMenuItem.Click += new System.EventHandler(this.clearFileDatabaseToolStripMenuItem_Click);
             // 
             // helpToolStripMenuItem
             // 

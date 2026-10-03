@@ -24,96 +24,90 @@ namespace SecureMemo.TextSearchModels
             {
                 TabIndex = tabIndex,
                 StartPosUp = textStartPos,
-                StartPosDown = textStartPos + selectionLength,
-                InitialTabIndex = tabIndex,
-                InitialStartPos = textStartPos,
-                TabCount = _tabPageDataCollection.TabPageDictionary.Count
+                StartPosDown = textStartPos + selectionLength
             };
         }
 
         public TextSearchResult GetTextSearchResult(TextSearchProperties searchProperties)
         {
-            var textSearchResult = new TextSearchResult();
+            if (!searchProperties.SearchAllTabs)
+                return GetTextSearchResultInActiveState(searchProperties);
 
-            if (searchProperties.SearchAllTabs)
-                while (_searchState.TabPageSearchCount <= _searchState.TabCount)
+            // Every tab once, plus the starting tab a second time so the text on the far side of
+            // the cursor is searched after the search has wrapped around.
+            int maxTabVisits = _tabPageDataCollection.TabPageDictionary.Count + 1;
+            for (int visit = 0; visit < maxTabVisits; visit++)
+            {
+                TextSearchResult textSearchResult = GetTextSearchResultInActiveState(searchProperties);
+                if (textSearchResult.SearchTextFound)
                 {
-                    textSearchResult = GetTextSearchResultInActiveState(searchProperties);
-                    if (textSearchResult.SearchTextFound)
-                    {
-                        textSearchResult.TabIndex = _searchState.TabIndex;
-                        break;
-                    }
-
-                    if (_searchState.TabIndex == _searchState.InitialTabIndex)
-                        break;
-
-                    _searchState.TabPageSearchCount++;
+                    textSearchResult.TabIndex = _searchState.TabIndex;
+                    return textSearchResult;
                 }
-            else
-                textSearchResult = GetTextSearchResultInActiveState(searchProperties);
+            }
 
-            return textSearchResult;
+            return new TextSearchResult();
         }
 
+        // StartPosDown is where the next downward match may begin; StartPosUp is where the next
+        // upward match must end by (-1 meaning "from the end of the tab").
         private TextSearchResult GetTextSearchResultInActiveState(TextSearchProperties searchProperties)
         {
             var textSearchResult = new TextSearchResult();
 
-            TabPageData tabPageData = _tabPageDataCollection.TabPageDictionary[_searchState.TabIndex];
-            int matchPos;
+            // Tabs may have been deleted since the search state was set (the Find dialog is modeless).
+            if (_searchState.TabIndex >= _tabPageDataCollection.TabPageDictionary.Count)
+                _searchState.TabIndex = 0;
 
-            if (string.IsNullOrEmpty(tabPageData.TabPageText))
+            if (!_tabPageDataCollection.TabPageDictionary.TryGetValue(_searchState.TabIndex, out TabPageData tabPageData))
+                return textSearchResult;
+
+            string text = tabPageData.TabPageText;
+            if (string.IsNullOrEmpty(text))
             {
-                SetNextTabIndex(searchProperties.SearchDirection);
+                MoveToNextTab(searchProperties.SearchDirection);
                 return textSearchResult;
             }
 
+            StringComparison comparison = searchProperties.CaseSensitive ? StringComparison.CurrentCulture : StringComparison.CurrentCultureIgnoreCase;
+            int matchPos;
+
             if (searchProperties.SearchDirection == TextSearchEvents.SearchDirection.Down)
             {
-                if (_searchState.StartPosDown >= tabPageData.TabPageText.Length)
-                    _searchState.StartPosDown = tabPageData.TabPageText.Length - 1;
-                else if (_searchState.StartPosDown < 0)
-                    _searchState.StartPosDown = 0;
-
-                matchPos = tabPageData.TabPageText.IndexOf(searchProperties.SearchText, _searchState.StartPosDown,
-                    searchProperties.CaseSensitive ? StringComparison.CurrentCulture : StringComparison.CurrentCultureIgnoreCase);
+                _searchState.StartPosDown = Math.Clamp(_searchState.StartPosDown, 0, text.Length);
+                matchPos = text.IndexOf(searchProperties.SearchText, _searchState.StartPosDown, comparison);
             }
             else
             {
-                if (_searchState.StartPosUp < 0 || _searchState.StartPosUp > tabPageData.TabPageText.Length)
-                    _searchState.StartPosUp = tabPageData.TabPageText.Length;
+                if (_searchState.StartPosUp < 0 || _searchState.StartPosUp > text.Length)
+                    _searchState.StartPosUp = text.Length;
 
-                matchPos = tabPageData.TabPageText.LastIndexOf(searchProperties.SearchText, _searchState.StartPosUp,
-                    searchProperties.CaseSensitive ? StringComparison.CurrentCulture : StringComparison.CurrentCultureIgnoreCase);
+                // LastIndexOf only returns matches that fit entirely at or before startIndex.
+                matchPos = _searchState.StartPosUp == 0 ? -1 : text.LastIndexOf(searchProperties.SearchText, _searchState.StartPosUp - 1, comparison);
             }
 
             if (matchPos >= 0)
             {
                 _searchState.StartPosDown = matchPos + searchProperties.SearchText.Length;
-                _searchState.StartPosUp = matchPos - searchProperties.SearchText.Length;
-
-                if (_searchState.StartPosUp < 0)
-                    _searchState.StartPosUp = 0;
+                _searchState.StartPosUp = matchPos;
 
                 textSearchResult.StartPos = matchPos;
                 textSearchResult.Length = searchProperties.SearchText.Length;
-                _searchState.MatchesFound++;
                 textSearchResult.SearchTextFound = true;
             }
             else
             {
-                _searchState.StartPosDown = 0;
-                _searchState.StartPosUp = -1;
-                SetNextTabIndex(searchProperties.SearchDirection);
-                textSearchResult.SearchTextFound = false;
+                MoveToNextTab(searchProperties.SearchDirection);
             }
 
             return textSearchResult;
         }
 
-        private void SetNextTabIndex(TextSearchEvents.SearchDirection searchDirection)
+        private void MoveToNextTab(TextSearchEvents.SearchDirection searchDirection)
         {
+            _searchState.StartPosDown = 0;
+            _searchState.StartPosUp = -1;
+
             if (searchDirection == TextSearchEvents.SearchDirection.Down)
                 _searchState.TabIndex++;
             else

@@ -6,6 +6,7 @@ using System.Threading;
 using System.Windows.Forms;
 using Autofac;
 using SecureMemo.Configuration;
+using SecureMemo.Services;
 
 namespace SecureMemo
 {
@@ -33,6 +34,10 @@ namespace SecureMemo
             }
 
             RegisterMutex();
+
+            // Decrypted copies of stored files left behind if the app was closed while they were open.
+            DecryptedFileCache.RemoveAll(DecryptedFileCache.DefaultRootPath);
+
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             using (var scope = Container.BeginLifetimeScope())

@@ -599,6 +599,9 @@ namespace SecureMemo
             tabsToolStripMenuItem.Enabled = _applicationState.DatabaseLoaded;
             changePasswordToolStripMenuItem.Enabled = _applicationState.DatabaseLoaded;
 
+            // Stored files are encrypted with the database password, so they need an open database.
+            fileArchiveToolStripMenuItem.Enabled = _applicationState.DatabaseLoaded;
+
             BackupDatabasetoolStripMenuItem.Enabled = _applicationState.DatabaseExists;
             RestoreDatabasetoolStripMenuItem.Enabled = _applicationState.DatabaseExists;
 
@@ -665,7 +668,7 @@ namespace SecureMemo
         private void createNewDatabaseToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (
-                MessageBox.Show(this, "Do you want to create a new Memo database? Doing so will overwrite any existing stored database under this account.", "Create new database?",
+                MessageBox.Show(this, "Do you want to create a new Memo database? Doing so will overwrite any existing stored database, and delete any files stored in the File Manager, under this account.", "Create new database?",
                     MessageBoxButtons.OKCancel, MessageBoxIcon.Question) !=
                 DialogResult.OK)
                 return;
@@ -752,8 +755,17 @@ namespace SecureMemo
 
             string password = formSetPassword.VerifiedPassword;
             formSetPassword.Dispose();
-            _passwordStorage.Set(PwdKey, password);
-            _logicManager.SaveDatabase();
+
+            try
+            {
+                _logicManager.ChangePassword(password);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Failed to change password");
+                MessageBox.Show(this, "The password was not changed. " + ex.Message, Resources.FormMain__ErrorText, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
 
             _appSettingsService.Settings.PasswordDerivedString = GeneralConverters.GeneratePasswordDerivedString(_appSettingsService.Settings.ApplicationSaltValue + password + _appSettingsService.Settings.ApplicationSaltValue);
 
@@ -834,8 +846,59 @@ namespace SecureMemo
 
         private void fileManagerToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var frmFileManager = _scope.Resolve<FormFileManager>();
+            using var frmFileManager = _scope.Resolve<FormFileManager>();
             frmFileManager.ShowDialog(this);
+        }
+
+        private void exportFileDatabaseToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (!_logicManager.HasStoredFiles)
+            {
+                MessageBox.Show(this, "There are no files stored in the File Manager.", "Export File Database", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            using var folderBrowserDialog = new FolderBrowserDialog {Description = "Export all stored files (decrypted) into a new folder inside:"};
+            if (folderBrowserDialog.ShowDialog(this) != DialogResult.OK)
+                return;
+
+            string exportFolder = Path.Combine(folderBrowserDialog.SelectedPath, $"Secure Memo files {DateTime.Now:yyyy-MM-dd HHmmss}");
+            try
+            {
+                Cursor = Cursors.WaitCursor;
+                int fileCount = _logicManager.ExportStoredFiles(exportFolder);
+                Cursor = Cursors.Default;
+                MessageBox.Show(this, $"Exported {fileCount} files to\n{exportFolder}", "Export File Database", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                Cursor = Cursors.Default;
+                Log.Error(ex, "Failed to export stored files");
+                MessageBox.Show(this, "The stored files could not be exported. " + ex.Message, "Export File Database", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void clearFileDatabaseToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (!_logicManager.HasStoredFiles)
+            {
+                MessageBox.Show(this, "There are no files stored in the File Manager.", "Clear File Database", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            if (MessageBox.Show(this, "Permanently delete every file and folder stored in the File Manager? This can not be undone.", "Clear File Database",
+                    MessageBoxButtons.OKCancel, MessageBoxIcon.Warning) != DialogResult.OK)
+                return;
+
+            try
+            {
+                _logicManager.DeleteStoredFiles();
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Failed to clear stored files");
+                MessageBox.Show(this, "The stored files could not be deleted. " + ex.Message, "Clear File Database", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void findToolStripMenuItem_Click(object sender, EventArgs e)

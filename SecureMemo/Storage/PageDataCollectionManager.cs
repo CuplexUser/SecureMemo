@@ -41,22 +41,20 @@ namespace SecureMemo.Storage
 
         public bool ValidateDataCollectionIntegrity()
         {
-            List<int> pageKeyList = _dataCollection.TabPageDictionary.Keys.OrderBy(i => i).ToList();
+            // Pages must be keyed 0..n-1 with each page's PageIndex matching its key; the rest of
+            // the app indexes TabPageDictionary directly by tab position.
+            bool isValid = _dataCollection.TabPageDictionary.Keys.OrderBy(i => i).SequenceEqual(Enumerable.Range(0, _dataCollection.TabPageDictionary.Count)) &&
+                           _dataCollection.TabPageDictionary.All(x => x.Value.PageIndex == x.Key);
 
-
-            // Check for duplicate page ids
-            if (pageKeyList.Distinct().Count() != pageKeyList.Count || pageKeyList.Max() > pageKeyList.Count)
+            if (!isValid)
             {
-                //Rebuild index
+                //Rebuild index, keeping the pages in their stored order
                 var tabPageDictionary = new Dictionary<int, TabPageData>();
-                var pageCount = pageKeyList.Distinct().Count();
-                pageKeyList.Sort();
-
-                var tabPageDataList = _dataCollection.TabPageDictionary.Values.Select(x => new TabPageData {PageIndex = x.PageIndex, TabPageLabel = x.TabPageLabel, TabPageText = x.TabPageText, UniqueId = x.UniqueId}).ToList();
+                var tabPageDataList = _dataCollection.TabPageDictionary.OrderBy(x => x.Key).Select(x => x.Value)
+                    .Select(x => new TabPageData {PageIndex = x.PageIndex, TabPageLabel = x.TabPageLabel, TabPageText = x.TabPageText, UniqueId = x.UniqueId}).ToList();
 
                 for (int i = 0; i < tabPageDataList.Count; i++)
                 {
-                    int key = i;
                     var pageData = tabPageDataList[i];
 
                     if (pageData.PageIndex != i)

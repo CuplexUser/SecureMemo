@@ -1,72 +1,81 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using SecureMemo.FileStorageEvents;
-using Serilog;
 
 namespace SecureMemo.FileStorageModels
 {
-    public class StorageFileSystem : IDisposable
+    /// <summary>
+    ///     The in-memory folder tree and file contents shown by the File Manager. Persisting it
+    ///     (encrypted) is up to <see cref="Services.FileStorageService" />.
+    /// </summary>
+    public class StorageFileSystem
     {
-        private const string fsStructureFileName = "FileSystem.smfs";
-        private const string validDirectoryNameRegExp = @"^[\w\._-]+$";
-        private readonly HashSet<StorageDirectory> _directories;
-        private readonly HashSet<int> _directoryIdSet;
-        private readonly HashSet<int> _fileIdSet;
-        private readonly HashSet<StorageFile> _files;
-        private readonly StorageDirectory _rootDirectory;
-        private readonly Regex _validDirNameRegex;
+        public const int RootDirectoryId = 0;
+        private const string RootDirectoryName = "Files";
+        private static readonly Regex ValidDirNameRegex = new Regex(@"^[\w\._-]+$");
+
+        private readonly Dictionary<int, StorageDirectory> _directories;
+        private readonly Dictionary<int, StorageFile> _files;
+        private readonly Dictionary<int, byte[]> _fileData;
         private int _nextDirectoryId;
         private int _nextFileId;
-        private MemoryStream fileSystemMemoryCache;
 
-        private StorageFileSystem()
+        private StorageFileSystem(StorageFileContent content)
         {
-            fileSystemMemoryCache = new MemoryStream();
-            _directories = new HashSet<StorageDirectory>();
-            _files = new HashSet<StorageFile>();
-            _directoryIdSet = new HashSet<int>();
-            _fileIdSet = new HashSet<int>();
-            _rootDirectory = CreateRooDir();
-            _nextFileId = 0;
-            _validDirNameRegex = new Regex(validDirectoryNameRegExp);
-        }
+            _directories = (content.Directories ?? new List<StorageDirectory>()).ToDictionary(d => d.Id);
+            _files = (content.Files ?? new List<StorageFile>()).ToDictionary(f => f.Id);
+            _fileData = new Dictionary<int, byte[]>(content.FileData ?? new Dictionary<int, byte[]>());
+            _nextDirectoryId = content.NextDirectoryId;
+            _nextFileId = content.NextFileId;
 
-        private StorageFileSystem(StorageFileContent storageFileSystemContent)
-        {
-            fileSystemMemoryCache = new MemoryStream();
-            _directories = storageFileSystemContent.Directories;
-            _files = storageFileSystemContent.Files;
-            _directoryIdSet = storageFileSystemContent.DirectoryIdSet;
-            _fileIdSet = storageFileSystemContent.FileIdSet;
-            _rootDirectory = _directories.First(d => d.Id == 0);
-            _nextFileId = storageFileSystemContent.NextFileId;
-            _nextDirectoryId = storageFileSystemContent.NextDirectoryId;
-        }
-
-        public void Dispose()
-        {
-            throw new NotImplementedException();
+            if (!_directories.ContainsKey(RootDirectoryId))
+            {
+                _directories.Add(RootDirectoryId, new StorageDirectory {Id = RootDirectoryId, ParentId = RootDirectoryId, DirectoryName = RootDirectoryName, CreateDate = DateTime.Now, ModifiedDate = DateTime.Now});
+                _nextDirectoryId = Math.Max(_nextDirectoryId, RootDirectoryId + 1);
+            }
         }
 
         public event StorageFileEventHandler FileStructureChanged;
         public event StorageDirectoryEventHandler DirectoryStructureChanged;
 
-        private StorageDirectory CreateRooDir()
+        public static StorageFileSystem CreateNewFileSystem()
         {
-            var root = new StorageDirectory {Id = 0, ParentId = 0, CreateDate = DateTime.Now, DirectoryName = "FSRootDir"};
-            _directoryIdSet.Add(_nextDirectoryId++);
-            // Root must be in _directories too, not just tracked by id, or it silently drops out of
-            // SaveToFile/LoadFileSystem and reload always fails to find it.
-            _directories.Add(root);
-            return root;
+            return new StorageFileSystem(new StorageFileContent());
         }
+
+        public static StorageFileSystem FromContent(StorageFileContent content)
+        {
+            if (content == null)
+                throw new ArgumentNullException(nameof(content));
+
+            return new StorageFileSystem(content);
+        }
+
+        public StorageFileContent ToContent()
+        {
+            return new StorageFileContent
+            {
+                Directories = _directories.Values.ToList(),
+                Files = _files.Values.ToList(),
+                FileData = new Dictionary<int, byte[]>(_fileData),
+                NextDirectoryId = _nextDirectoryId,
+                NextFileId = _nextFileId
+            };
+        }
+
+        #region Directories
 
         public int CreateDirectory(StorageDirectory parentDirectory, string directoryName)
         {
+            if (parentDirectory == null || !_directories.ContainsKey(parentDirectory.Id))
+                throw new ArgumentException("The parent directory does not exist", nameof(parentDirectory));
+
+            if (!IsValidDirectoryName(directoryName))
+                throw new ArgumentException("Invalid directory name: " + directoryName, nameof(directoryName));
+
             var storageDirectory = new StorageDirectory
             {
                 Id = _nextDirectoryId++,
@@ -76,8 +85,7 @@ namespace SecureMemo.FileStorageModels
                 ModifiedDate = DateTime.Now
             };
 
-            _directories.Add(storageDirectory);
-            _directoryIdSet.Add(storageDirectory.Id);
+            _directories.Add(storageDirectory.Id, storageDirectory);
 
             DirectoryStructureChanged?.Invoke(this,
                 new StorageDirectorySystemEventArgs {DirectoryEventType = StorageFileSystemEventTypes.Created, DirectoryId = storageDirectory.Id, ParentDirectoryId = storageDirectory.ParentId});
@@ -87,23 +95,21 @@ namespace SecureMemo.FileStorageModels
 
         public bool DeleteDirectory(int directoryId)
         {
-            StorageDirectory storageDirectory = _directories.FirstOrDefault(d => d.Id == directoryId);
-            if (storageDirectory == null)
+            if (directoryId == RootDirectoryId || !_directories.TryGetValue(directoryId, out StorageDirectory storageDirectory))
                 return false;
 
-            // Without cascading, child directories/files would stay in _directories/_files forever,
-            // orphaned and invisible in the UI but never actually removed from the persisted file.
+            // Without cascading, child directories/files would stay in the container forever,
+            // orphaned and invisible in the UI but never actually removed.
             foreach (StorageDirectory childDirectory in GetDirectories(directoryId))
                 DeleteDirectory(childDirectory.Id);
 
             foreach (StorageFile file in GetFiles(directoryId))
             {
-                _files.Remove(file);
-                _fileIdSet.Remove(file.Id);
+                _files.Remove(file.Id);
+                _fileData.Remove(file.Id);
             }
 
-            _directories.Remove(storageDirectory);
-            _directoryIdSet.Remove(storageDirectory.Id);
+            _directories.Remove(directoryId);
 
             DirectoryStructureChanged?.Invoke(this,
                 new StorageDirectorySystemEventArgs {DirectoryEventType = StorageFileSystemEventTypes.Deleted, DirectoryId = directoryId, ParentDirectoryId = storageDirectory.ParentId});
@@ -113,14 +119,14 @@ namespace SecureMemo.FileStorageModels
 
         public bool RenameDirectory(int directoryId, string newDirectoryName)
         {
-            if (!IsValidDirectoryName(newDirectoryName))
+            if (!IsValidDirectoryName(newDirectoryName) || directoryId == RootDirectoryId)
                 return false;
 
-            StorageDirectory storageDirectory = _directories.FirstOrDefault(d => d.Id == directoryId);
-            if (storageDirectory == null)
+            if (!_directories.TryGetValue(directoryId, out StorageDirectory storageDirectory))
                 return false;
 
             storageDirectory.DirectoryName = newDirectoryName;
+            storageDirectory.ModifiedDate = DateTime.Now;
 
             DirectoryStructureChanged?.Invoke(this,
                 new StorageDirectorySystemEventArgs {DirectoryEventType = StorageFileSystemEventTypes.Renamed, DirectoryId = directoryId, ParentDirectoryId = storageDirectory.ParentId});
@@ -133,108 +139,120 @@ namespace SecureMemo.FileStorageModels
             if (string.IsNullOrEmpty(directoryName))
                 return false;
 
-            return _validDirNameRegex.IsMatch(directoryName);
+            return ValidDirNameRegex.IsMatch(directoryName);
         }
 
-        public int CreateFile(StorageDirectory parentDirectory, string fileName)
+        public StorageDirectory GetRootDirectory()
         {
+            return _directories[RootDirectoryId];
+        }
+
+        public StorageDirectory GetDirectory(int directoryId)
+        {
+            return _directories.GetValueOrDefault(directoryId);
+        }
+
+        public List<StorageDirectory> GetDirectories(int parentDirectoryId)
+        {
+            // The root is its own parent, so it must not be listed as its own child.
+            return _directories.Values.Where(d => d.ParentId == parentDirectoryId && d.Id != parentDirectoryId).OrderBy(d => d.DirectoryName, StringComparer.CurrentCultureIgnoreCase).ToList();
+        }
+
+        #endregion
+
+        #region Files
+
+        /// <summary>
+        ///     Stores a copy of <paramref name="content" /> in <paramref name="parentDirectory" />. A name
+        ///     that is already taken in that directory gets a " (2)", " (3)", ... suffix.
+        /// </summary>
+        /// <returns>The new file's id.</returns>
+        public int AddFile(StorageDirectory parentDirectory, string fileName, byte[] content)
+        {
+            if (parentDirectory == null || !_directories.ContainsKey(parentDirectory.Id))
+                throw new ArgumentException("The parent directory does not exist", nameof(parentDirectory));
+
+            if (!IsValidFileName(fileName))
+                throw new ArgumentException("Invalid file name: " + fileName, nameof(fileName));
+
+            if (content == null)
+                throw new ArgumentNullException(nameof(content));
+
             var storageFile = new StorageFile
             {
-                CreateDate = DateTime.Now,
-                ModifiedDate = DateTime.Now,
                 Id = _nextFileId++,
                 DirectoryId = parentDirectory.Id,
-                FileName = fileName
+                FileName = GetUniqueFileName(parentDirectory.Id, fileName),
+                FileSize = content.Length,
+                CreateDate = DateTime.Now,
+                ModifiedDate = DateTime.Now
             };
 
-            _fileIdSet.Add(storageFile.Id);
-            _files.Add(storageFile);
+            _files.Add(storageFile.Id, storageFile);
+            _fileData.Add(storageFile.Id, (byte[]) content.Clone());
 
             FileStructureChanged?.Invoke(this, new StorageFileSystemEventArgs {DirectoryId = storageFile.DirectoryId, FileId = storageFile.Id, FileEvent = StorageFileSystemEventTypes.Created});
 
             return storageFile.Id;
         }
 
-        public StorageDirectory GetRootDirectory()
+        /// <summary>
+        ///     Returns a copy of the stored file's contents.
+        /// </summary>
+        public byte[] ReadFile(int fileId)
         {
-            return _rootDirectory;
+            if (!_fileData.TryGetValue(fileId, out byte[] data))
+                throw new FileNotFoundException("No stored file with id " + fileId);
+
+            // protobuf-net reads an empty byte array back as null.
+            return data == null ? Array.Empty<byte>() : (byte[]) data.Clone();
         }
 
-        public StorageDirectory GetDirectory(int directoryId)
+        public bool DeleteFile(int fileId)
         {
-            return _directories.FirstOrDefault(d => d.Id == directoryId);
+            if (!_files.Remove(fileId, out StorageFile storageFile))
+                return false;
+
+            _fileData.Remove(fileId);
+            FileStructureChanged?.Invoke(this, new StorageFileSystemEventArgs {DirectoryId = storageFile.DirectoryId, FileId = fileId, FileEvent = StorageFileSystemEventTypes.Deleted});
+
+            return true;
         }
 
-        public List<StorageDirectory> GetDirectories(int parentDirectoryId)
+        public StorageFile GetFile(int fileId)
         {
-            return _directories.Where(d => d.ParentId == parentDirectoryId).ToList();
+            return _files.GetValueOrDefault(fileId);
         }
 
         public List<StorageFile> GetFiles(int directoryId)
         {
-            return _files.Where(f => f.DirectoryId == directoryId).ToList();
+            return _files.Values.Where(f => f.DirectoryId == directoryId).OrderBy(f => f.FileName, StringComparer.CurrentCultureIgnoreCase).ToList();
         }
 
-        public void SaveToFile(string directoryPath)
+        /// <summary>
+        ///     A plain file name: not empty, no directory parts and no characters Windows rejects.
+        /// </summary>
+        public static bool IsValidFileName(string fileName)
         {
-            FileStream fs = null;
-            try
-            {
-                fs = File.Create(directoryPath + "\\" + fsStructureFileName);
-                var fileSystemContent = new StorageFileContent
-                {
-                    Directories = _directories,
-                    DirectoryIdSet = _directoryIdSet,
-                    FileIdSet = _fileIdSet,
-                    Files = _files,
-                    NextDirectoryId = _nextDirectoryId,
-                    NextFileId = _nextFileId
-                };
-
-                JsonSerializer.Serialize(fs, fileSystemContent);
-                fs.Flush();
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Exception in SaveToFile() + {Message}", ex.Message);
-            }
-            finally
-            {
-                fs?.Close();
-            }
+            return !string.IsNullOrWhiteSpace(fileName) && fileName.IndexOfAny(Path.GetInvalidFileNameChars()) < 0 && fileName != "." && fileName != "..";
         }
 
-        public static StorageFileSystem LoadFileSystem(string directoryPath)
+        private string GetUniqueFileName(int directoryId, string fileName)
         {
-            FileStream fs = null;
-            try
+            var existingNames = new HashSet<string>(GetFiles(directoryId).Select(f => f.FileName), StringComparer.OrdinalIgnoreCase);
+            if (!existingNames.Contains(fileName))
+                return fileName;
+
+            string baseName = Path.GetFileNameWithoutExtension(fileName);
+            string extension = Path.GetExtension(fileName);
+            for (int i = 2;; i++)
             {
-                fs = File.OpenRead(directoryPath + "\\" + fsStructureFileName);
-                var storageFileSystemContent = JsonSerializer.Deserialize<StorageFileContent>(fs);
-                return new StorageFileSystem(storageFileSystemContent);
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Error loading filesystem {Message}", ex.Message);
-                return null;
-            }
-            finally
-            {
-                fs?.Close();
+                string candidate = $"{baseName} ({i}){extension}";
+                if (!existingNames.Contains(candidate))
+                    return candidate;
             }
         }
 
-        public static StorageFileSystem CreateNewFileSystem()
-        {
-            var storageFileSystem = new StorageFileSystem();
-            return storageFileSystem;
-        }
-
-        public class StorageFileDataRange
-        {
-            public long EndPosition;
-            public int FileId;
-            public long StartPosition;
-        }
+        #endregion
     }
 }

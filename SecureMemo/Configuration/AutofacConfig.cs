@@ -33,7 +33,7 @@ namespace SecureMemo.Configuration
             var builder = new ContainerBuilder();
             builder.RegisterInstance(appSettings).As<AppSettingsService>().SingleInstance();
             builder.RegisterInstance(memoStorageService).As<MemoStorageService>().SingleInstance();
-            builder.RegisterInstance(new FileStorageService()).As<FileStorageService>().SingleInstance();
+            builder.RegisterInstance(new FileStorageService(Path.Combine(settingsFolderPath, FileStorageService.ContainerFileName))).As<FileStorageService>().SingleInstance();
             builder.RegisterInstance(passwordStorageMgr).As<PasswordStorage>().SingleInstance();
 
 

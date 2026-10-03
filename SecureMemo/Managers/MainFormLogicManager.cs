@@ -45,11 +45,6 @@ namespace SecureMemo.Managers
         private readonly ILifetimeScope _scope;
 
         /// <summary>
-        ///     The existing database
-        /// </summary>
-        private bool? _existingDatabase;
-
-        /// <summary>
         ///     The lock object
         /// </summary>
         private readonly object _lockObject = new object();
@@ -118,24 +113,22 @@ namespace SecureMemo.Managers
         /// <value>
         ///     <c>true</c> if this instance has existing database; otherwise, <c>false</c>.
         /// </value>
-        public bool HasExistingDatabase
-        {
-            get
-            {
-                _existingDatabase ??= _memoStorageService.DatabaseExists();
-                return _existingDatabase.Value;
-            }
-        }
+        public bool HasExistingDatabase => _memoStorageService.DatabaseExists();
 
         public event EventDeliagtes.TabPageCollectionChanged OnTabPageCollectionChange;
 
         public event EventDeliagtes.ActivatePageIndexChanged OnActivePageIndexChange;
 
 
+        /// <summary>
+        ///     Creates an empty database with the current password. Files stored in the File Manager
+        ///     are removed too, since they were encrypted with the old database's password.
+        /// </summary>
         [SecuritySafeCritical]
         public void CreateNewDatabase()
         {
             string password = _passwordStorage.Get("SecureMemo");
+            _fileStorageService.Delete();
             _tabPageDataCollection = TabPageDataCollection.CreateNewPageDataCollection(_appSettingsService.Settings.DefaultEmptyTabPages);
             _memoStorageService.SaveTabPageCollection(_tabPageDataCollection, password);
             OnTabPageCollectionChange?.Invoke(this, new TabPageCollectionEventArgs(TabPageCollectionStateChange.NewDatabaseCreated));
@@ -190,6 +183,20 @@ namespace SecureMemo.Managers
             PageDataChanged = false;
         }
 
+        /// <summary>
+        ///     Switches the database, and the files stored in the File Manager, to a new password.
+        ///     The stored files are re-encrypted first, so if that fails nothing has changed yet.
+        /// </summary>
+        [SecuritySafeCritical]
+        public void ChangePassword(string newPassword)
+        {
+            if (string.IsNullOrEmpty(newPassword)) throw new ArgumentException("The new password can not be empty", nameof(newPassword));
+
+            _fileStorageService.ChangePassword(_passwordStorage.Get("SecureMemo"), newPassword);
+            _passwordStorage.Set("SecureMemo", newPassword);
+            SaveDatabase();
+        }
+
         [SecuritySafeCritical]
         public bool SaveToSharedFolder()
         {
@@ -204,6 +211,25 @@ namespace SecureMemo.Managers
             _passwordStorage.Set("SharedFolderPassword", null);
             return result;
         }
+
+        /// <summary>
+        ///     Exports decrypted copies of all files stored in the File Manager.
+        /// </summary>
+        /// <returns>The number of files exported.</returns>
+        public int ExportStoredFiles(string targetFolder)
+        {
+            return _fileStorageService.ExportAll(_passwordStorage.Get("SecureMemo"), targetFolder);
+        }
+
+        /// <summary>
+        ///     Permanently deletes every file stored in the File Manager.
+        /// </summary>
+        public void DeleteStoredFiles()
+        {
+            _fileStorageService.Delete();
+        }
+
+        public bool HasStoredFiles => _fileStorageService.ContainerExists;
 
         public RestoreSyncDataResult RestoreBackupFromSyncFolder()
         {
@@ -228,6 +254,7 @@ namespace SecureMemo.Managers
 
         public void ResetToDefaultDatabase()
         {
+            _fileStorageService.Unload();
             _tabPageDataCollection.TabPageDictionary.Clear();
             _tabPageDataCollection.ActiveTabIndex = 0;
             _tabPageDataCollection = null;
@@ -272,7 +299,7 @@ namespace SecureMemo.Managers
             var page = new TabPageData();
             page.GenerateUniqueIdIfNoneExists();
             page.PageIndex = PageCount;
-            page.TabPageLabel = $"Page {PageCount}";
+            page.TabPageLabel = $"Page{PageCount + 1}";
             _tabPageDataCollection.TabPageDictionary.Add(page.PageIndex, page);
             _tabPageDataCollection.ActiveTabIndex = page.PageIndex;
             TabPageStructureChanged = true;
@@ -281,12 +308,16 @@ namespace SecureMemo.Managers
         }
 
         /// <summary>
-        ///     Gets the tab page data collection.
+        ///     Gets a copy of the tab pages, in tab order. The tab management dialog edits these
+        ///     while the user works, so they must not be the live objects or a cancelled dialog
+        ///     would still leave its renames and reordering behind.
         /// </summary>
         /// <returns></returns>
         public List<TabPageData> GetTabPageDataCollection()
         {
-            return _tabPageDataCollection.TabPageDictionary.Values.ToList();
+            return _tabPageDataCollection.TabPageDictionary.OrderBy(x => x.Key)
+                .Select(x => new TabPageData {PageIndex = x.Value.PageIndex, TabPageLabel = x.Value.TabPageLabel, TabPageText = x.Value.TabPageText, UniqueId = x.Value.UniqueId})
+                .ToList();
         }
 
         /// <summary>
@@ -348,13 +379,8 @@ namespace SecureMemo.Managers
         /// <returns></returns>
         public async Task<bool> RemoveTabPageAsync(int tabIndex)
         {
-            if (!_tabPageDataCollection.TabPageDictionary.ContainsKey(tabIndex)) return false;
-
-            var tabToRemove = _tabPageDataCollection.TabPageDictionary[tabIndex];
-            int removedPageIndex = tabToRemove.PageIndex;
-
             // Removing Item
-            _tabPageDataCollection.TabPageDictionary.Remove(removedPageIndex);
+            if (!_tabPageDataCollection.TabPageDictionary.Remove(tabIndex)) return false;
 
             // State
             TabPageStructureChanged = true;

@@ -233,6 +233,7 @@ namespace UnitTests.EntropyTests
         {
             TestSystemInit.SetupRuntimeEnvironment();
             scope = TestSystemInit.Scope;
+            Directory.CreateDirectory(scope.Resolve<TestAppBuildConfig>().TestDataOutputPath);
         }
     }
 }
